@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ashish Tuli | AI & Quantum Exploration</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0a0a0a;
+            color: #e2e8f0;
+            overflow: hidden; /* Prevent scrollbars from the canvas */
+        }
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+        /* Glassmorphism effect for content cards */
+        .card {
+            background: rgba(17, 24, 39, 0.6); /* Semi-transparent dark blue-gray */
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1rem;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- The 3D animation will be rendered here -->
+    <canvas id="bg-canvas"></canvas>
+
+    <!-- Main content container -->
+    <main class="relative w-full h-screen flex items-center justify-center p-4">
+        <div class="w-full max-w-2xl text-center space-y-8">
+            
+            <!-- Header section -->
+            <div class="card p-6 md:p-8">
+                <h1 class="text-4xl md:text-5xl font-bold text-white">Ashish Tuli</h1>
+                <p class="mt-4 text-lg md:text-xl text-slate-300">Exploring the Intersection of Intelligence & Reality</p>
+            </div>
+
+            <!-- About section -->
+            <div class="card p-6 md:p-8 text-left">
+                <h2 class="text-2xl font-bold text-white mb-4">About</h2>
+                <p class="text-slate-300 leading-relaxed">
+                    Welcome to my digital space. I am passionate about leveraging Artificial Intelligence to solve complex problems and am deeply intrigued by the principles of Quantum Computing that promise to redefine the future of computation. This animation represents a conceptual fusion of these fields—a neural network built of quantum bits, constantly in flux, shaped by observation.
+                </p>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- three.js library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <script>
+        // --- three.js setup ---
+        let scene, camera, renderer, particles, lines;
+        const PARTICLE_COUNT = 500;
+        const INTERACTIVITY_RADIUS = 60;
+        const mouse = new THREE.Vector2(-1000, -1000); // Initialize mouse off-screen
+
+        function init() {
+            // Scene
+            scene = new THREE.Scene();
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 100;
+
+            // Renderer
+            const canvas = document.getElementById('bg-canvas');
+            renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+            // --- Create Particles (The "Qubits") ---
+            const particleGeometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(PARTICLE_COUNT * 3);
+            const colors = new Float32Array(PARTICLE_COUNT * 3);
+            const sizes = new Float32Array(PARTICLE_COUNT);
+
+            const baseColor = new THREE.Color('#00ffff'); // Cyan base color
+
+            for (let i = 0; i < PARTICLE_COUNT; i++) {
+                // Position particles in a sphere-like volume
+                const x = (Math.random() - 0.5) * 200;
+                const y = (Math.random() - 0.5) * 200;
+                const z = (Math.random() - 0.5) * 200;
+                positions[i * 3] = x;
+                positions[i * 3 + 1] = y;
+                positions[i * 3 + 2] = z;
+
+                // Assign a slightly varied color
+                colors[i * 3] = baseColor.r;
+                colors[i * 3 + 1] = baseColor.g;
+                colors[i * 3 + 2] = baseColor.b;
+
+                // Assign a random size
+                sizes[i] = Math.random() * 2 + 1;
+            }
+
+            particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            particleGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+            particleGeometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+            
+            // Shader material for more control over particle appearance
+            const particleMaterial = new THREE.ShaderMaterial({
+                uniforms: {
+                    pointTexture: { value: new THREE.TextureLoader().load('https://placehold.co/32x32/ffffff/ffffff.png?text=•') } // A simple dot texture
+                },
+                vertexShader: `
+                    attribute float size;
+                    varying vec3 vColor;
+                    void main() {
+                        vColor = color;
+                        vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
+                        gl_PointSize = size * ( 300.0 / -mvPosition.z );
+                        gl_Position = projectionMatrix * mvPosition;
+                    }
+                `,
+                fragmentShader: `
+                    uniform sampler2D pointTexture;
+                    varying vec3 vColor;
+                    void main() {
+                        gl_FragColor = vec4( vColor, 1.0 );
+                        gl_FragColor = gl_FragColor * texture2D( pointTexture, gl_PointCoord );
+                    }
+                `,
+                blending: THREE.AdditiveBlending,
+                depthTest: false,
+                transparent: true,
+                vertexColors: true
+            });
+
+
+            particles = new THREE.Points(particleGeometry, particleMaterial);
+            scene.add(particles);
+
+            // --- Create Lines (The "Entanglement") ---
+            const lineGeometry = new THREE.BufferGeometry();
+            const linePositions = [];
+            const connectedIndices = new Set();
+            
+            // Connect a few random particles
+            for (let i = 0; i < PARTICLE_COUNT / 4; i++) {
+                const startIdx = Math.floor(Math.random() * PARTICLE_COUNT);
+                const endIdx = Math.floor(Math.random() * PARTICLE_COUNT);
+
+                if (startIdx !== endIdx && !connectedIndices.has(`${startIdx}-${endIdx}`)) {
+                    linePositions.push(positions[startIdx * 3], positions[startIdx * 3 + 1], positions[startIdx * 3 + 2]);
+                    linePositions.push(positions[endIdx * 3], positions[endIdx * 3 + 1], positions[endIdx * 3 + 2]);
+                    connectedIndices.add(`${startIdx}-${endIdx}`);
+                    connectedIndices.add(`${endIdx}-${startIdx}`);
+                }
+            }
+
+            lineGeometry.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
+            const lineMaterial = new THREE.LineBasicMaterial({ 
+                color: 0x00ffff,
+                transparent: true,
+                opacity: 0.1 
+            });
+            lines = new THREE.LineSegments(lineGeometry, lineMaterial);
+            scene.add(lines);
+
+            // --- Event Listeners ---
+            window.addEventListener('resize', onWindowResize);
+            window.addEventListener('mousemove', onMouseMove);
+        }
+
+        // Handle window resizing
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // Track mouse movement
+        function onMouseMove(event) {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        }
+
+        // --- Animation Loop ---
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const time = Date.now() * 0.0001;
+
+            // Rotate the entire system for a dynamic feel
+            scene.rotation.y = time * 0.2;
+            scene.rotation.x = time * 0.1;
+
+            // Animate particles based on mouse proximity
+            const positions = particles.geometry.attributes.position.array;
+            const colors = particles.geometry.attributes.color.array;
+            const baseColor = new THREE.Color('#00ffff'); // Cyan
+            const hoverColor = new THREE.Color('#ff00ff'); // Magenta
+
+            // To interact with 3D objects, we need to project mouse coords into the 3D space
+            const vector = new THREE.Vector3(mouse.x, mouse.y, 0.5);
+            vector.unproject(camera);
+            const dir = vector.sub(camera.position).normalize();
+            const distance = -camera.position.z / dir.z;
+            const mousePos3D = camera.position.clone().add(dir.multiplyScalar(distance));
+            
+            for (let i = 0; i < PARTICLE_COUNT; i++) {
+                const i3 = i * 3;
+                const particlePos = new THREE.Vector3(positions[i3], positions[i3 + 1], positions[i3 + 2]);
+                const distToMouse = particlePos.distanceTo(mousePos3D);
+
+                // Check if the particle is within the interactivity radius
+                if (distToMouse < INTERACTIVITY_RADIUS) {
+                    // Particle is being "observed" - change color
+                    const closeness = 1 - (distToMouse / INTERACTIVITY_RADIUS);
+                    const interpolatedColor = baseColor.clone().lerp(hoverColor, closeness);
+                    colors[i3] = interpolatedColor.r;
+                    colors[i3 + 1] = interpolatedColor.g;
+                    colors[i3 + 2] = interpolatedColor.b;
+                } else {
+                    // Particle is in its "superposition" - default color
+                    colors[i3] = baseColor.r;
+                    colors[i3 + 1] = baseColor.g;
+                    colors[i3 + 2] = baseColor.b;
+                }
+            }
+            
+            // Flag that the attributes have been updated
+            particles.geometry.attributes.color.needsUpdate = true;
+
+            renderer.render(scene, camera);
+        }
+
+        // --- Start the experience ---
+        init();
+        animate();
+    </script>
+</body>
+</html>
