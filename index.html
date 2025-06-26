@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ashish Tuli</title>
+    <title>Ashish Tuli | Quantum Field</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -66,11 +66,12 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
 
             // --- Geometries and Materials for Instanced Meshes ---
-            const circleGeo = new THREE.CircleGeometry(0.8, 16);
-            const boxGeo = new THREE.BoxGeometry(1.2, 1.2, 1.2);
-            const triangleGeo = new THREE.ConeGeometry(1, 1.5, 3); // A cone with 3 sides looks like a triangle
+            // **FIX**: Increased the size of the geometries to make them more visible.
+            const circleGeo = new THREE.CircleGeometry(4, 24); 
+            const boxGeo = new THREE.BoxGeometry(6, 6, 6);
+            const triangleGeo = new THREE.ConeGeometry(5, 7, 3);
             
-            // **FIX**: The material must have `vertexColors: true` to use the per-instance colors.
+            // The material must have `vertexColors: true` to use the per-instance colors.
             const material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, transparent: true, opacity: 0.8, vertexColors: true });
 
             // Create three InstancedMesh objects, one for each shape.
@@ -78,7 +79,6 @@
             boxMesh = new THREE.InstancedMesh(boxGeo, material, PARTICLE_COUNT);
             triangleMesh = new THREE.InstancedMesh(triangleGeo, material, PARTICLE_COUNT);
             
-            // InstancedMeshes are not visible until at least one instance matrix is set
             circleMesh.count = 0;
             boxMesh.count = 0;
             triangleMesh.count = 0;
@@ -89,12 +89,13 @@
             const dummy = new THREE.Object3D(); // Used to calculate matrices
             for (let i = 0; i < PARTICLE_COUNT; i++) {
                 const shapeType = Math.floor(Math.random() * 3); // 0: circle, 1: box, 2: triangle
-                let mesh, instanceId;
+                let mesh, instanceId, isCircle = false;
                 
                 // Assign particle to its corresponding mesh and update count
                 if (shapeType === 0) {
                     mesh = circleMesh;
                     instanceId = circleMesh.count++;
+                    isCircle = true;
                 } else if (shapeType === 1) {
                     mesh = boxMesh;
                     instanceId = boxMesh.count++;
@@ -104,8 +105,8 @@
                 }
 
                 // Initial position
-                const x = (Math.random() - 0.5) * 200;
-                const y = (Math.random() - 0.5) * 200;
+                const x = (Math.random() - 0.5) * 250;
+                const y = (Math.random() - 0.5) * 250;
                 const z = (Math.random() - 0.5) * FIELD_DEPTH;
                 dummy.position.set(x, y, z);
                 dummy.updateMatrix();
@@ -114,6 +115,7 @@
                 particles.push({
                     mesh: mesh,
                     instanceId: instanceId,
+                    isCircle: isCircle, // Store if it's a circle for billboarding
                     position: dummy.position.clone(),
                     baseRotation: new THREE.Euler(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI)
                 });
@@ -143,12 +145,12 @@
         }
 
         function onMouseMove(event) {
-            // Convert mouse position to normalized device coordinates (-1 to +1)
             mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
         }
 
         function triggerEntanglement() {
+            if (particles.length < 2) return;
             // Pick two random, distinct particles
             const index1 = Math.floor(Math.random() * particles.length);
             let index2 = Math.floor(Math.random() * particles.length);
@@ -161,7 +163,7 @@
 
             // Create the visual line connecting them
             const points = [p1.position, p2.position];
-            const tubeGeo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points), 2, 0.1, 8, false);
+            const tubeGeo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points), 2, 0.2, 8, false);
             const tubeMat = new THREE.MeshBasicMaterial({ 
                 color: entanglementColor, 
                 transparent: true,
@@ -171,12 +173,11 @@
             const tube = new THREE.Mesh(tubeGeo, tubeMat);
             scene.add(tube);
             
-            // Store the effect data to manage its lifecycle in the animate loop
             entanglementEffects.push({
                 particle1: p1,
                 particle2: p2,
                 line: tube,
-                life: 1.0 // Lifespan of the effect
+                life: 1.0 
             });
         }
         
@@ -189,21 +190,16 @@
             const time = clock.getElapsedTime();
 
             // --- Camera Movement ---
-            // Move camera forward
-            camera.position.z -= 10 * delta;
-            // When camera passes the front, loop it to the back
+            camera.position.z -= 15 * delta;
             if (camera.position.z < -FIELD_DEPTH / 2) {
                 camera.position.z = FIELD_DEPTH / 2;
             }
 
             // --- Update Entanglement Effects ---
             entanglementEffects.forEach((effect, index) => {
-                effect.life -= delta * 0.5; // Decrease lifespan
-                
-                // Fade out the line
+                effect.life -= delta * 0.5;
                 effect.line.material.opacity = effect.life;
                 
-                // Flash the entangled particles white
                 const flashColor = baseColor.clone().lerp(entanglementColor, effect.life);
                 effect.particle1.mesh.setColorAt(effect.particle1.instanceId, flashColor);
                 effect.particle2.mesh.setColorAt(effect.particle2.instanceId, flashColor);
@@ -211,7 +207,6 @@
                 effect.particle2.mesh.instanceColor.needsUpdate = true;
                 
                 if (effect.life <= 0) {
-                    // Remove effect when lifespan is over
                     scene.remove(effect.line);
                     effect.line.geometry.dispose();
                     effect.line.material.dispose();
@@ -220,7 +215,6 @@
             });
 
             // --- Update individual particles ---
-            // Project mouse into 3D space for interaction
             const vector = new THREE.Vector3(mouse.x, mouse.y, 0.5);
             vector.unproject(camera);
             const dir = vector.sub(camera.position).normalize();
@@ -228,16 +222,13 @@
             const mousePos3D = camera.position.clone().add(dir.multiplyScalar(distance));
             
             particles.forEach(p => {
-                // Wrap particles that go behind the camera to the front
                 const particleWorldZ = p.position.z - camera.position.z;
                 if (particleWorldZ > 0) {
                      p.position.z -= FIELD_DEPTH;
                 }
                 
-                // Calculate distance to mouse
                 const distToMouse = p.position.distanceTo(mousePos3D);
                 
-                // Apply hover effect, but only if not currently entangled
                 if (!entanglementEffects.some(e => e.particle1 === p || e.particle2 === p)) {
                     if (distToMouse < MOUSE_INTERACTION_RADIUS) {
                         const closeness = 1 - (distToMouse / MOUSE_INTERACTION_RADIUS);
@@ -248,13 +239,19 @@
                     }
                 }
                 
-                // Update the instance matrix
                 dummy.position.copy(p.position);
-                dummy.rotation.set(
-                    p.baseRotation.x + time * 0.2,
-                    p.baseRotation.y + time * 0.3,
-                    p.baseRotation.z + time * 0.1
-                );
+
+                // **FIX**: If it's a circle, make it face the camera (billboarding).
+                // Otherwise, apply a standard rotation.
+                if (p.isCircle) {
+                    dummy.lookAt(camera.position);
+                } else {
+                    dummy.rotation.set(
+                        p.baseRotation.x + time * 0.2,
+                        p.baseRotation.y + time * 0.3,
+                        p.baseRotation.z + time * 0.1
+                    );
+                }
                 dummy.updateMatrix();
                 p.mesh.setMatrixAt(p.instanceId, dummy.matrix);
             });
