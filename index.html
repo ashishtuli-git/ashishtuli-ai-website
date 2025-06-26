@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ashish Tuli | Quantum Field</title>
+    <title>Ashish Tuli</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -120,6 +120,11 @@
                 mesh.setMatrixAt(instanceId, dummy.matrix);
                 mesh.setColorAt(instanceId, baseColor);
             }
+
+            // **FIX**: Explicitly tell the renderer that the instance colors have been set and need to be updated.
+            circleMesh.instanceColor.needsUpdate = true;
+            boxMesh.instanceColor.needsUpdate = true;
+            triangleMesh.instanceColor.needsUpdate = true;
             
             // --- Event Listeners ---
             window.addEventListener('resize', onWindowResize);
