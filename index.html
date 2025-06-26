@@ -69,7 +69,9 @@
             const circleGeo = new THREE.CircleGeometry(0.8, 16);
             const boxGeo = new THREE.BoxGeometry(1.2, 1.2, 1.2);
             const triangleGeo = new THREE.ConeGeometry(1, 1.5, 3); // A cone with 3 sides looks like a triangle
-            const material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, transparent: true, opacity: 0.8 });
+            
+            // **FIX**: The material must have `vertexColors: true` to use the per-instance colors.
+            const material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, transparent: true, opacity: 0.8, vertexColors: true });
 
             // Create three InstancedMesh objects, one for each shape.
             circleMesh = new THREE.InstancedMesh(circleGeo, material, PARTICLE_COUNT);
@@ -121,7 +123,7 @@
                 mesh.setColorAt(instanceId, baseColor);
             }
 
-            // **FIX**: Explicitly tell the renderer that the instance colors have been set and need to be updated.
+            // Explicitly tell the renderer that the instance colors have been set and need to be updated.
             circleMesh.instanceColor.needsUpdate = true;
             boxMesh.instanceColor.needsUpdate = true;
             triangleMesh.instanceColor.needsUpdate = true;
@@ -148,10 +150,10 @@
 
         function triggerEntanglement() {
             // Pick two random, distinct particles
-            const index1 = Math.floor(Math.random() * PARTICLE_COUNT);
-            let index2 = Math.floor(Math.random() * PARTICLE_COUNT);
+            const index1 = Math.floor(Math.random() * particles.length);
+            let index2 = Math.floor(Math.random() * particles.length);
             while (index1 === index2) {
-                index2 = Math.floor(Math.random() * PARTICLE_COUNT);
+                index2 = Math.floor(Math.random() * particles.length);
             }
 
             const p1 = particles[index1];
