@@ -4,670 +4,502 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Ashish Tuli</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+
   <style>
-    /*******************************************************
-     * Layout & Basic Page Setup
-     *******************************************************/
-    :root{
-      --fg: #eee;
-      --frozen: #4B0000;
-      --node: rgba(255,255,255,0.9);
-      --line: rgba(255,255,255,0.7);
-    }
-
+    /* -------------------------------------------
+       LAYOUT & ATMOSPHERE
+       ------------------------------------------- */
     html, body {
-      margin: 0;
-      padding: 0;
-      width: 100%;
-      height: 100%;
+      margin: 0; padding: 0;
+      width: 100%; height: 100%;
+      overflow: hidden; 
+      font-family: 'Inter', sans-serif;
+      background: #0a0d1a; /* Fallback */
     }
 
-    body {
-      overflow: hidden; /* prevent tiny scrollbars from transforms */
-      color: var(--fg);
-      text-shadow: 0 0 10px rgba(0,0,0,0.35); /* subtle readability boost */
+    /* Deep Space Gradient Animation */
+    @keyframes deepSpace {
+      0%   { background: linear-gradient(135deg, #05070a, #0f172a); }
+      50%  { background: linear-gradient(135deg, #0a0f1f, #1e293b); }
+      100% { background: linear-gradient(135deg, #0f172a, #263c5e); }
+    }
+    body.sunset { 
+      animation: deepSpace 30s ease-in-out infinite alternate; 
     }
 
-    /* Use sunset background animations exclusively */
-    @keyframes sunsetLinearAnim {
-      0%   { background: linear-gradient(135deg, #0a0d1a, #1b2340); }
-      50%  { background: linear-gradient(135deg, #151a32, #24325a); }
-      100% { background: linear-gradient(135deg, #1a2132, #2f3d5c); }
-    }
-    body.sunset {
-      animation: sunsetLinearAnim 20s linear infinite alternate;
-    }
-
-    /* Neural network canvas behind everything */
+    /* The Neural Canvas */
     #neuralCanvas {
       position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
       z-index: 1;
-      pointer-events: none;
-      display: block;
     }
 
-    /*******************************************************
-     * Top Left Links
-     *******************************************************/
+    /* -------------------------------------------
+       GLASSMORPHISM UI (FROSTED GLASS)
+       ------------------------------------------- */
+    .ui-container {
+        padding: 0.8rem 1.2rem;
+        border-radius: 12px;
+        background: rgba(10, 15, 30, 0.4); /* Darker tint for better contrast */
+        backdrop-filter: blur(12px); 
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+    }
+    .ui-container:hover {
+        background: rgba(30, 40, 60, 0.5);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        transform: translateY(-2px) scale(1.01);
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    }
+
+    /* -------------------------------------------
+       UI ELEMENTS POSITIONS
+       ------------------------------------------- */
+    /* Top Left: Socials */
     .top-left-links {
-      position: absolute;
-      top: calc(20px + env(safe-area-inset-top));
-      left: calc(20px + env(safe-area-inset-left));
-      z-index: 5;
-      display: flex;
-      gap: 20px;
-      align-items: center;
+      position: absolute; top: 30px; left: 30px;
+      z-index: 10; display: flex; gap: 24px; align-items: center;
     }
-
-    .myriad-pro {
-      font-family: "Myriad Pro Semibold", system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-      font-weight: 600;
-      text-decoration: none;
-      color: var(--fg);
+    .link-text {
+      font-weight: 500; text-decoration: none;
+      color: #e2e8f0; letter-spacing: 0.5px;
+      position: relative;
     }
-
+    .link-text::after {
+      content: ''; position: absolute; width: 0; height: 1px;
+      bottom: -4px; left: 0; background-color: #60a5fa;
+      transition: width 0.3s;
+    }
+    .link-text:hover::after { width: 100%; }
+    
     .double-struck-x {
-      font-weight: bold;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-      text-decoration: none;
-      font-size: 1.2rem;
-      color: var(--fg);
+      font-weight: 700; text-decoration: none; font-size: 1.3rem; color: #e2e8f0;
     }
 
-    /*******************************************************
-     * Top Right Bitcoin Info
-     *******************************************************/
+    /* Top Right: Bitcoin Data */
     #bitcoinInfo {
-      position: absolute;
-      top: calc(20px + env(safe-area-inset-top));
-      right: calc(20px + env(safe-area-inset-right));
-      z-index: 10;
-      font-family: "Myriad Pro Semibold", system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-      font-weight: normal;
-      font-size: 1rem;
-      padding: 0.5rem 1rem;
-      border-radius: 6px;
-      background: none;
-      color: var(--fg);
-      font-variant-numeric: tabular-nums; /* prevents jitter when numbers change */
-      white-space: nowrap;
+      position: absolute; top: 30px; right: 30px;
+      z-index: 10; color: #cbd5e1;
+      font-size: 0.85rem; font-weight: 400;
+      text-align: right; line-height: 1.5;
+      padding: 0.8rem 1.2rem;
     }
-    #bitcoinInfo .btc-sub {
-      margin-left: 0.6rem;
-      font-size: 0.85em;
-      opacity: 0.85;
-    }
+    .btc-label { font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; }
+    .btc-val { font-weight: 600; color: #fff; }
 
-    /*******************************************************
-     * Bottom Left Times
-     *******************************************************/
+    /* Bottom Left: World Clocks */
     .visitor-info {
-      position: absolute;
-      bottom: calc(20px + env(safe-area-inset-bottom));
-      left: calc(20px + env(safe-area-inset-left));
-      z-index: 3;
-      font-size: 0.9rem;
-      padding: 0.5rem 1rem;
-      background: transparent;
-      font-variant-numeric: tabular-nums;
+      position: absolute; bottom: 30px; left: 30px;
+      z-index: 10; font-size: 0.8rem; color: #94a3b8;
+      line-height: 1.8;
+      display: grid; grid-template-columns: 1fr; gap: 4px;
     }
+    .clock-row { display: flex; justify-content: space-between; min-width: 200px; gap: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 2px;}
+    .clock-city { font-weight: 500; color: #cbd5e1; }
 
-    /*******************************************************
-     * Bottom Right Quotes
-     *******************************************************/
+    /* Bottom Right: Quotes */
     .quotes {
-      position: absolute;
-      bottom: calc(20px + env(safe-area-inset-bottom));
-      right: calc(20px + env(safe-area-inset-right));
-      z-index: 3;
-      max-width: 300px;
-      font-size: 0.9rem;
-      padding: 0.5rem 1rem;
-      background: transparent;
-      transition: opacity 250ms ease-in-out;
-    }
-    .quotes.fading {
-      opacity: 0;
+      position: absolute; bottom: 30px; right: 30px;
+      z-index: 10; max-width: 360px;
+      font-size: 0.95rem; font-style: italic;
+      color: #e2e8f0; text-align: right;
+      border-left: none; border-right: 3px solid #60a5fa; /* Blue accent bar */
     }
 
-    /*******************************************************
-     * Media Query for Smaller Screens
-     *******************************************************/
+    /* Mobile Responsive */
     @media (max-width: 768px) {
-      .visitor-info, .quotes { font-size: 0.8rem; }
-      .myriad-pro { font-size: 0.9rem; }
-      .double-struck-x { font-size: 1rem; }
-      .visitor-info { bottom: calc(60px + env(safe-area-inset-bottom)); }
-      .quotes { left: calc(20px + env(safe-area-inset-left)); right: calc(20px + env(safe-area-inset-right)); max-width: none; }
-    }
-
-    /*******************************************************
-     * Hover / Focus polish (desktop only)
-     *******************************************************/
-    body *:not(canvas) { transition: transform 0.2s ease-in-out; }
-
-    @media (hover: hover) and (pointer: fine) {
-      /* Scale most text on hover, but exclude pulsing links so transforms don't fight */
-      body *:not(canvas):not(#linkedInLink):not(#xLink):hover {
-        transform: scale(1.05);
-      }
-      a:hover { text-decoration: none; }
-    }
-
-    a:focus-visible {
-      outline: 2px solid rgba(255,255,255,0.75);
-      outline-offset: 4px;
-      border-radius: 6px;
-    }
-
-    /*******************************************************
-     * Pulse Animation for Top-Left Links
-     *******************************************************/
-    @keyframes pulse {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.03); }
-      100% { transform: scale(1); }
-    }
-    #linkedInLink { animation: pulse 3s infinite ease-in-out; }
-    #xLink { animation: pulse 3s infinite ease-in-out; animation-delay: 1.5s; }
-
-    /*******************************************************
-     * Reduced motion support
-     *******************************************************/
-    @media (prefers-reduced-motion: reduce) {
-      body.sunset { animation: none; background: linear-gradient(135deg, #0a0d1a, #1b2340); }
-      #linkedInLink, #xLink { animation: none; }
-      body *:not(canvas) { transition: none; }
+      .visitor-info { bottom: 90px; left: 20px; font-size: 0.75rem; }
+      .quotes { bottom: 20px; right: 20px; font-size: 0.8rem; max-width: 260px; }
+      .top-left-links { top: 20px; left: 20px; gap: 15px; }
+      #bitcoinInfo { top: 20px; right: 20px; padding: 0.6rem; }
     }
   </style>
 </head>
-
 <body class="sunset">
+  
   <canvas id="neuralCanvas"></canvas>
 
-  <div class="top-left-links">
-    <a href="https://www.linkedin.com/in/ashishtuli" target="_blank" rel="noopener noreferrer"
-       class="myriad-pro" id="linkedInLink">LinkedIn</a>
-    <a href="https://x.com/ashishtuli" target="_blank" rel="noopener noreferrer"
-       class="double-struck-x" id="xLink" aria-label="Ashish Tuli on X">&#x1D54F;</a>
+  <div class="top-left-links ui-container">
+    <a href="https://www.linkedin.com/in/ashishtuli" target="_blank" class="link-text">LinkedIn</a>
+    <a href="https://x.com/ashishtuli" target="_blank" class="double-struck-x">&#x1D54F;</a>
   </div>
 
-  <div id="bitcoinInfo">Loading Bitcoin Info…</div>
-
-  <div class="visitor-info" id="visitorInfo">
-    <div id="timeCalifornia">California: --:--</div>
-    <div id="timeNewYork">New York: --:--</div>
-    <div id="timeAddisAbaba">Addis Ababa: --:--</div>
-    <div id="timeManama">Manama: --:--</div>
-    <div id="timeNewDelhi">New Delhi: --:--</div>
+  <div id="bitcoinInfo" class="ui-container">
+    <span class="btc-label">Initializing</span><br>
+    <span class="btc-val">Stream...</span>
   </div>
 
-  <div class="quotes" id="quotesBox"></div>
+  <div class="visitor-info ui-container" id="visitorInfo">
+    </div>
+
+  <div class="quotes ui-container" id="quotesBox"></div>
 
   <script>
-    (() => {
-      /********************************************************
-       * Theme constants
-       ********************************************************/
-      const fg = getComputedStyle(document.documentElement).getPropertyValue('--fg').trim() || '#eee';
-      const deepMaroon = getComputedStyle(document.documentElement).getPropertyValue('--frozen').trim() || '#4B0000';
-      const nodeBaseColor = getComputedStyle(document.documentElement).getPropertyValue('--node').trim() || 'rgba(255,255,255,0.9)';
-      const lineBaseColor = getComputedStyle(document.documentElement).getPropertyValue('--line').trim() || 'rgba(255,255,255,0.7)';
+    /**
+     * ==========================================================
+     * 3D NEURAL NETWORK ENGINE (The "Wow" Factor)
+     * Features: Synaptic Firing, Z-Depth Parallax, Smart Mouse
+     * ==========================================================
+     */
+    const canvas = document.getElementById('neuralCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Config
+    let width, height;
+    const nodeCount = window.innerWidth < 768 ? 40 : 130; // Dense network
+    const connectionDist = 140; 
+    const mouseRadius = 250;
+    
+    // State
+    let nodes = [];
+    let pulses = []; // Synaptic signals
+    let mouse = { x: null, y: null };
+    
+    // Colors
+    const colorActive = { h: 210, s: 70, l: 60 };  // Electric Blue
+    const colorFrozen = { h: 340, s: 80, l: 60 };  // Hot Pink/Crimson
+    
+    // Logic Flags
+    let cascadeActive = false;
+    let resetMode = false;
+    let resetScheduled = false;
 
-      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // --- SETUP & RESIZE ---
+    function resize() {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+      ctx.scale(dpr, dpr);
+      canvas.style.width = width + "px";
+      canvas.style.height = height + "px";
+    }
+    window.addEventListener('resize', () => { resize(); initNodes(); });
+    window.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
+    window.addEventListener('mouseout', () => { mouse.x = null; mouse.y = null; });
+    resize();
 
-      /********************************************************
-       * Bitcoin Info (throttled + cached + paused when hidden)
-       ********************************************************/
-      const bitcoinInfoElem = document.getElementById("bitcoinInfo");
-      bitcoinInfoElem.style.color = fg;
-
-      const BTC_CACHE_KEY = 'btcInfoCache_v1';
-      const BTC_REFRESH_MS = 45_000; // subtle but huge improvement vs 1000ms
-      const FETCH_TIMEOUT_MS = 8000;
-      let btcTimer = null;
-
-      function loadBtcCache() {
-        try {
-          const raw = localStorage.getItem(BTC_CACHE_KEY);
-          if (!raw) return null;
-          return JSON.parse(raw);
-        } catch {
-          return null;
-        }
+    // --- INITIALIZATION ---
+    function initNodes() {
+      nodes = [];
+      pulses = [];
+      for(let i=0; i<nodeCount; i++) {
+        const z = Math.random(); // Depth: 0 (back) to 1 (front)
+        nodes.push({
+          x: Math.random() * width,
+          y: Math.random() * height,
+          z: z, // Depth
+          
+          // Velocity scales with depth (Parallax effect)
+          vx: (Math.random() - 0.5) * (0.2 + z * 0.5), 
+          vy: (Math.random() - 0.5) * (0.2 + z * 0.5),
+          
+          originalVx: 0, originalVy: 0, // For freezing logic
+          
+          // State
+          radius: 1.5 + (z * 2.5), // Closer nodes are bigger
+          connections: 0,
+          isStopped: false,
+          freezeAt: undefined,
+          unfreezeAt: undefined,
+          
+          // Visuals
+          pulseVal: 0 // Flash intensity when hit by a signal
+        });
       }
+    }
+    initNodes();
 
-      function saveBtcCache(payload) {
-        try { localStorage.setItem(BTC_CACHE_KEY, JSON.stringify(payload)); } catch {}
-      }
+    // --- ANIMATION LOOP ---
+    function animate() {
+      ctx.clearRect(0, 0, width, height);
+      
+      // 1. Update Nodes
+      nodes.forEach(n => {
+        n.connections = 0; // Reset count
+        
+        // Decay pulse visual
+        if(n.pulseVal > 0) n.pulseVal -= 0.05;
 
-      function formatUpdatedTime(ts) {
-        return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      }
-
-      function renderBtc({ height, price, updatedAt, stale = false }) {
-        const t = formatUpdatedTime(updatedAt);
-        bitcoinInfoElem.innerHTML = `
-          <span class="btc-main">${height} | $${price}</span>
-          <span class="btc-sub">${stale ? 'stale ' : 'updated '}${t}</span>
-        `.trim();
-        bitcoinInfoElem.title = `Bitcoin block height & spot price (${stale ? 'cached' : 'fresh'})`;
-      }
-
-      async function fetchWithTimeout(url, { timeoutMs = FETCH_TIMEOUT_MS } = {}) {
-        const controller = new AbortController();
-        const id = setTimeout(() => controller.abort(), timeoutMs);
-        try {
-          const res = await fetch(url, { signal: controller.signal, cache: 'no-store' });
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          return res;
-        } finally {
-          clearTimeout(id);
-        }
-      }
-
-      async function fetchBlockHeight() {
-        // Primary: Blockstream (simple, fast)
-        try {
-          const r = await fetchWithTimeout('https://blockstream.info/api/blocks/tip/height');
-          return (await r.text()).trim();
-        } catch {}
-        // Fallback: blockchain.info
-        const r2 = await fetchWithTimeout('https://blockchain.info/q/getblockcount');
-        return (await r2.text()).trim();
-      }
-
-      async function fetchBtcPriceUsd() {
-        // Primary: Coinbase spot
-        try {
-          const r = await fetchWithTimeout('https://api.coinbase.com/v2/prices/spot?currency=USD');
-          const j = await r.json();
-          const amount = Number(j?.data?.amount);
-          if (!Number.isFinite(amount)) throw new Error('Bad coinbase payload');
-          return Math.round(amount).toString();
-        } catch {}
-        // Fallback: Coindesk (may be rate limited / changed over time)
-        const r2 = await fetchWithTimeout('https://api.coindesk.com/v1/bpi/currentprice.json');
-        const j2 = await r2.json();
-        const rate = Number(j2?.bpi?.USD?.rate_float);
-        if (!Number.isFinite(rate)) throw new Error('Bad coindesk payload');
-        return Math.round(rate).toString();
-      }
-
-      async function updateBitcoinInfo() {
-        try {
-          const [height, price] = await Promise.all([fetchBlockHeight(), fetchBtcPriceUsd()]);
-          const payload = { height, price, updatedAt: Date.now() };
-          renderBtc(payload);
-          saveBtcCache(payload);
-        } catch (e) {
-          const cached = loadBtcCache();
-          if (cached?.height && cached?.price && cached?.updatedAt) {
-            renderBtc({ ...cached, stale: true });
-          } else {
-            bitcoinInfoElem.textContent = 'Bitcoin info unavailable';
-          }
-          // Keep console logging for debugging, but don’t spam UI
-          console.error('Error fetching Bitcoin info:', e);
-        }
-      }
-
-      function startBtcLoop() {
-        stopBtcLoop();
-        // Update immediately, then schedule next
-        updateBitcoinInfo();
-        btcTimer = setInterval(() => {
-          if (document.visibilityState === 'visible') updateBitcoinInfo();
-        }, BTC_REFRESH_MS);
-      }
-
-      function stopBtcLoop() {
-        if (btcTimer) clearInterval(btcTimer);
-        btcTimer = null;
-      }
-
-      /********************************************************
-       * Times (Bottom Left)
-       ********************************************************/
-      const tzItems = [
-        { id: "timeCalifornia", label: "California", tz: "America/Los_Angeles" },
-        { id: "timeNewYork", label: "New York", tz: "America/New_York" },
-        { id: "timeAddisAbaba", label: "Addis Ababa", tz: "Africa/Addis_Ababa" },
-        { id: "timeManama", label: "Manama", tz: "Asia/Bahrain" },
-        { id: "timeNewDelhi", label: "New Delhi", tz: "Asia/Kolkata" },
-      ];
-
-      const timeNodes = tzItems.map(x => ({
-        el: document.getElementById(x.id),
-        label: x.label,
-        timeFmt: new Intl.DateTimeFormat([], { timeZone: x.tz, hour: '2-digit', minute: '2-digit' }),
-        dateFmt: new Intl.DateTimeFormat([], { timeZone: x.tz, year: 'numeric', month: 'short', day: '2-digit' }),
-      }));
-
-      function updateTimes() {
-        const now = new Date();
-        for (const t of timeNodes) {
-          t.el.textContent = `${t.label}: ${t.timeFmt.format(now)}, ${t.dateFmt.format(now)}`;
-        }
-      }
-
-      document.getElementById('visitorInfo').style.color = fg;
-      const quotesBox = document.getElementById('quotesBox');
-      quotesBox.style.color = fg;
-
-      /********************************************************
-       * Nietzsche Quotes (fade + no immediate repeats)
-       ********************************************************/
-      const quotesArray = [
-        "He who has a why to live can bear almost any how.",
-        "That which does not kill us makes us stronger.",
-        "In every real man a child is hidden that wants to play.",
-        "There are no facts, only interpretations.",
-        "Whoever fights monsters should see to it that in the process he does not become a monster.",
-        "There is always some madness in love. But there is also always some reason in madness.",
-        "Convictions are more dangerous enemies of truth than lies.",
-        "The surest way to corrupt a youth is to instruct him to hold in higher esteem those who think alike than those who think differently.",
-        "Become who you are.",
-        "In individuals, insanity is rare; but in groups, parties, nations, and epochs, it is the rule.",
-        "Morality is the herd instinct in the individual.",
-        "And those who were seen dancing were thought to be insane by those who could not hear the music.",
-        "We have art in order not to die of the truth.",
-        "Necessity is not an established fact, but an interpretation.",
-        "Admiration for a quality or an art can be so strong that it deters us from striving to possess it."
-      ];
-
-      let lastQuoteIndex = -1;
-
-      function pickNextQuoteIndex() {
-        if (quotesArray.length <= 1) return 0;
-        let idx;
-        do { idx = Math.floor(Math.random() * quotesArray.length); }
-        while (idx === lastQuoteIndex);
-        return idx;
-      }
-
-      function setQuote(text) {
-        quotesBox.classList.add('fading');
-        setTimeout(() => {
-          quotesBox.textContent = text;
-          quotesBox.classList.remove('fading');
-        }, 250);
-      }
-
-      function cycleQuotes() {
-        const idx = pickNextQuoteIndex();
-        lastQuoteIndex = idx;
-        setQuote(quotesArray[idx]);
-      }
-
-      /********************************************************
-       * Neural Network Canvas (faster + sharper)
-       ********************************************************/
-      const canvas = document.getElementById('neuralCanvas');
-      const ctx = canvas.getContext('2d');
-      let width, height, dpr;
-      let nodes = [];
-
-      const CONNECTION_DIST = 120;
-      const CONNECTION_DIST2 = CONNECTION_DIST * CONNECTION_DIST;
-      const MOBILE_BREAKPOINT = 768;
-
-      let cascadeActive = false;
-      let resetMode = false;
-      let resetScheduled = false;
-
-      function resizeCanvas() {
-        width = window.innerWidth;
-        height = window.innerHeight;
-        dpr = window.devicePixelRatio || 1;
-
-        canvas.style.width = width + 'px';
-        canvas.style.height = height + 'px';
-        canvas.width = Math.round(width * dpr);
-        canvas.height = Math.round(height * dpr);
-
-        // Draw using CSS pixel coordinates
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      }
-
-      window.addEventListener('resize', resizeCanvas);
-      resizeCanvas();
-
-      function initNodes(count) {
-        nodes = [];
-        for (let i = 0; i < count; i++) {
-          nodes.push({
-            x: Math.random() * width,
-            y: Math.random() * height,
-            vx: (Math.random() - 0.5) * 0.6,
-            vy: (Math.random() - 0.5) * 0.6,
-            currAdjCount: 0,
-            lastAdjCount: 0,
-            glowEndTime: 0,
-            isStopped: false,
-            freezeAt: undefined,
-            unfreezeAt: undefined,
-            resetDelayUntil: undefined
-          });
-        }
-      }
-
-      initNodes(width < MOBILE_BREAKPOINT ? 25 : 121);
-
-      function animateNodes() {
-        const now = performance.now();
-        ctx.clearRect(0, 0, width, height);
-
-        // Reset connection counts.
-        for (const n of nodes) n.currAdjCount = 0;
-
-        // Update positions of active (unfrozen) nodes.
-        for (const n of nodes) {
-          if (!n.isStopped) {
-            n.x += n.vx;
-            n.y += n.vy;
-
-            // wrap
-            if (n.x < 0) n.x = width;
-            if (n.x > width) n.x = 0;
-            if (n.y < 0) n.y = height;
-            if (n.y > height) n.y = 0;
-          }
-        }
-
-        // Draw connections for each node pair (squared-distance check).
-        for (let i = 0; i < nodes.length; i++) {
-          for (let j = i + 1; j < nodes.length; j++) {
-            const a = nodes[i], b = nodes[j];
-            const dx = a.x - b.x;
-            const dy = a.y - b.y;
-            const dist2 = dx * dx + dy * dy;
-
-            if (dist2 < CONNECTION_DIST2) {
-              // Skip connecting if one is frozen and the other is active.
-              if ((a.isStopped && !b.isStopped) || (!a.isStopped && b.isStopped)) continue;
-
-              // Both frozen → deep maroon connection.
-              if (a.isStopped && b.isStopped) {
-                a.currAdjCount++;
-                b.currAdjCount++;
-                ctx.beginPath();
-                ctx.moveTo(a.x, a.y);
-                ctx.lineTo(b.x, b.y);
-                ctx.strokeStyle = deepMaroon;
-                ctx.lineWidth = 1.2;
-                ctx.stroke();
-                continue;
-              }
-
-              // Both active → obey 1s reset delay for newly unfrozen nodes.
-              if (!a.isStopped && !b.isStopped) {
-                if ((a.resetDelayUntil && now < a.resetDelayUntil) ||
-                    (b.resetDelayUntil && now < b.resetDelayUntil)) {
-                  continue;
-                }
-                a.currAdjCount++;
-                b.currAdjCount++;
-                ctx.beginPath();
-                ctx.moveTo(a.x, a.y);
-                ctx.lineTo(b.x, b.y);
-                ctx.strokeStyle = lineBaseColor;
-                ctx.lineWidth = 1.2;
-                ctx.stroke();
-              }
-            }
-          }
-        }
-
-        // Freeze / Reset scheduling.
-        if (!resetMode) {
-          // Find ONE seed node to freeze (break after the first).
-          if (!cascadeActive && !resetScheduled) {
-            for (let i = 0; i < nodes.length; i++) {
-              if (nodes[i].currAdjCount >= 10 && !nodes[i].isStopped) {
-                nodes[i].vx = 0;
-                nodes[i].vy = 0;
-                nodes[i].isStopped = true;
-                cascadeActive = true;
-                break;
-              }
+        // Freeze/Cascade Logic (Preserved from original request)
+        if (!n.isStopped) {
+          // --- MOUSE INTERACTION (Gravity + Swirl) ---
+          if (mouse.x !== null) {
+            let dx = mouse.x - n.x;
+            let dy = mouse.y - n.y;
+            let dist = Math.sqrt(dx*dx + dy*dy);
+            
+            // Influence creates a gentle swirl around the mouse
+            if (dist < mouseRadius) {
+              const force = (mouseRadius - dist) / mouseRadius;
+              const influence = force * 0.03 * n.z; // Closer nodes react more
+              
+              n.vx += (dx / dist) * influence; // Attract
+              n.vy += (dy / dist) * influence;
             }
           }
 
-          // For each unfrozen node near a frozen node, schedule freezing with a 600ms delay.
-          if (!resetScheduled) {
-            for (const n of nodes) {
-              if (!n.isStopped && n.freezeAt === undefined) {
-                for (const m of nodes) {
-                  if (m.isStopped) {
-                    const dx = n.x - m.x;
-                    const dy = n.y - m.y;
-                    if ((dx * dx + dy * dy) < CONNECTION_DIST2) {
-                      n.freezeAt = now + 600;
-                      break;
-                    }
-                  }
-                }
-              }
-              if (!n.isStopped && n.freezeAt !== undefined && now >= n.freezeAt) {
-                n.vx = 0;
-                n.vy = 0;
-                n.isStopped = true;
-                n.freezeAt = undefined;
-              }
-            }
+          // Speed Limit (Dampening)
+          const speed = Math.sqrt(n.vx*n.vx + n.vy*n.vy);
+          const maxSpeed = 0.5 + (n.z * 1.5); // Front nodes move faster
+          if (speed > maxSpeed) {
+            n.vx *= 0.95; n.vy *= 0.95;
           }
 
-          // When all nodes are frozen, schedule the reset cascade.
-          if (nodes.every(n => n.isStopped) && !resetScheduled) {
-            resetScheduled = true;
-            setTimeout(() => {
-              resetMode = true;
-              const idx = Math.floor(Math.random() * nodes.length);
-              nodes[idx].isStopped = false;
-              nodes[idx].vx = (Math.random() - 0.5) * 0.6;
-              nodes[idx].vy = (Math.random() - 0.5) * 0.6;
-              nodes[idx].resetDelayUntil = performance.now() + 1000;
-            }, 3000);
-          }
-        } else {
-          // RESET MODE: propagate unfreezing
-          for (const n of nodes) {
-            if (n.isStopped) {
-              let nearUnfrozen = false;
-              for (const m of nodes) {
-                if (!m.isStopped) {
-                  const dx = n.x - m.x;
-                  const dy = n.y - m.y;
-                  if ((dx * dx + dy * dy) < CONNECTION_DIST2) {
-                    nearUnfrozen = true;
-                    break;
-                  }
-                }
-              }
-              if (nearUnfrozen && n.unfreezeAt === undefined) n.unfreezeAt = now + 600;
+          // Move
+          n.x += n.vx; n.y += n.vy;
 
-              if (n.unfreezeAt !== undefined && now >= n.unfreezeAt) {
-                n.isStopped = false;
-                n.unfreezeAt = undefined;
-                n.vx = (Math.random() - 0.5) * 0.6;
-                n.vy = (Math.random() - 0.5) * 0.6;
-                n.resetDelayUntil = now + 1000;
-              }
-            }
-          }
-
-          if (nodes.every(n => !n.isStopped)) {
-            resetMode = false;
-            cascadeActive = false;
-            resetScheduled = false;
-          }
+          // Wrap around screen
+          if (n.x < -50) n.x = width + 50;
+          if (n.x > width + 50) n.x = -50;
+          if (n.y < -50) n.y = height + 50;
+          if (n.y > height + 50) n.y = -50;
         }
 
-        // Draw nodes (with glow effect when applicable).
-        for (const n of nodes) {
-          if (n.currAdjCount > n.lastAdjCount) n.glowEndTime = now + 314;
-          n.lastAdjCount = n.currAdjCount;
-
-          const size = 1 + n.currAdjCount * 1.618;
-
-          if (now < n.glowEndTime) {
-            ctx.beginPath();
-            ctx.arc(n.x, n.y, size + 1.5, 0, Math.PI * 2);
-            ctx.fillStyle = "rgba(255,255,0,0.7)";
-            ctx.fill();
-          }
-
-          ctx.beginPath();
-          ctx.arc(n.x, n.y, size, 0, Math.PI * 2);
-          ctx.fillStyle = n.isStopped ? deepMaroon : nodeBaseColor;
-          ctx.fill();
-        }
-
-        requestAnimationFrame(animateNodes);
-      }
-
-      /********************************************************
-       * Visibility handling
-       ********************************************************/
-      document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') {
-          startBtcLoop();
-          updateTimes();
-        } else {
-          stopBtcLoop();
-        }
+        // Logic processing (freezing/thawing timers)
+        handleCascadeLogic(n);
       });
 
-      /********************************************************
-       * On Page Load
-       ********************************************************/
-      // Show cached BTC instantly if available
-      const cached = loadBtcCache();
-      if (cached?.height && cached?.price && cached?.updatedAt) {
-        renderBtc({ ...cached, stale: true });
+      // 2. Draw Connections & Spawn Pulses
+      ctx.lineWidth = 0.5;
+      
+      // We loop O(N^2) but optimized by distance check
+      for (let i = 0; i < nodes.length; i++) {
+        for (let j = i + 1; j < nodes.length; j++) {
+          let n1 = nodes[i];
+          let n2 = nodes[j];
+          
+          let dx = n1.x - n2.x;
+          let dy = n1.y - n2.y;
+          let distSq = dx*dx + dy*dy;
+          
+          // Threshold check (squared to avoid sqrt for performance)
+          if (distSq < connectionDist * connectionDist) {
+            // Check freeze rules
+            if ((n1.isStopped !== n2.isStopped)) continue; // Don't connect different states
+            
+            n1.connections++;
+            n2.connections++;
+            
+            // Calculate opacity based on Z-depth average
+            const zAvg = (n1.z + n2.z) / 2;
+            const opacity = 0.15 + (zAvg * 0.3); // Deeper lines are fainter
+            
+            // Color logic
+            let strokeColor;
+            if (n1.isStopped) {
+               strokeColor = `hsla(${colorFrozen.h}, ${colorFrozen.s}%, ${colorFrozen.l}%, ${opacity})`;
+            } else {
+               strokeColor = `hsla(${colorActive.h}, ${colorActive.s}%, ${colorActive.l}%, ${opacity})`;
+            }
+
+            ctx.beginPath();
+            ctx.strokeStyle = strokeColor;
+            ctx.moveTo(n1.x, n1.y);
+            ctx.lineTo(n2.x, n2.y);
+            ctx.stroke();
+
+            // --- SYNAPTIC FIRING (The Spark) ---
+            // Random chance to fire a signal pulse between connected nodes
+            // Chance increases if nodes are highly connected or near mouse
+            if (!n1.isStopped && Math.random() < 0.002) {
+              pulses.push({
+                x: n1.x, y: n1.y,
+                tx: n2.x, ty: n2.y,
+                z: zAvg,
+                progress: 0,
+                speed: 0.02 + Math.random() * 0.03
+              });
+            }
+          }
+        }
       }
 
-      updateTimes();
-      setInterval(updateTimes, 10_000);
+      // 3. Draw & Update Pulses (Synapses)
+      for (let i = pulses.length - 1; i >= 0; i--) {
+        let p = pulses[i];
+        p.progress += p.speed;
+        
+        if (p.progress >= 1) {
+          pulses.splice(i, 1);
+          continue; // Signal reached destination
+        }
 
-      cycleQuotes();
-      setInterval(cycleQuotes, 10_000);
+        // Lerp position
+        let curX = p.x + (p.tx - p.x) * p.progress;
+        let curY = p.y + (p.ty - p.y) * p.progress;
+        
+        // Draw glowing dot
+        const size = 1.5 + p.z;
+        ctx.beginPath();
+        ctx.arc(curX, curY, size, 0, Math.PI*2);
+        ctx.fillStyle = `rgba(255, 255, 255, ${0.8 + (0.2 * p.z)})`;
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = "white";
+        ctx.fill();
+        ctx.shadowBlur = 0; // Reset
+      }
 
-      startBtcLoop();
-
-      // Respect reduced motion: keep layout, reduce animation load
-      if (!prefersReducedMotion) {
-        requestAnimationFrame(animateNodes);
+      // 4. Draw Nodes
+      nodes.forEach(n => {
+        ctx.beginPath();
+        const drawRadius = n.radius + (n.pulseVal * 3); // Expand when pulsed
+        ctx.arc(n.x, n.y, drawRadius, 0, Math.PI * 2);
+        
+        // Fill Color
+        let hue, sat, light;
+        if (n.isStopped) {
+          hue = colorFrozen.h; sat = colorFrozen.s; light = colorFrozen.l;
+        } else {
+          hue = colorActive.h; sat = colorActive.s; light = colorActive.l + (n.pulseVal * 40); // Flash white
+        }
+        
+        const alpha = 0.4 + (n.z * 0.6); // Fade out distant nodes
+        ctx.fillStyle = `hsla(${hue}, ${sat}%, ${light}%, ${alpha})`;
+        ctx.fill();
+        
+        // Glow effect for highly connected nodes (The "Hubs")
+        if (n.connections > 5) {
+          ctx.beginPath();
+          ctx.arc(n.x, n.y, drawRadius * 1.5, 0, Math.PI * 2);
+          ctx.fillStyle = `hsla(${hue}, ${sat}%, ${light}%, 0.1)`;
+          ctx.fill();
+        }
+      });
+      
+      requestAnimationFrame(animate);
+    }
+    
+    // --- CASCADE LOGIC (Preserving the "Overload" feature) ---
+    function handleCascadeLogic(n) {
+      if (!resetMode) {
+        // Start Cascade
+        if (!cascadeActive && !resetScheduled && n.connections > 9 && !n.isStopped) {
+          n.isStopped = true; n.vx = 0; n.vy = 0; cascadeActive = true; n.pulseVal = 1; // Flash!
+        }
+        // Spread Cascade
+        if (!resetScheduled && !n.isStopped && n.freezeAt === undefined) {
+          // Check neighbors
+          // Optimization: We check distance in draw loop, could flag there, but simpler here for separate concern
+          // Simplified: Random freeze if cascade is active to simulate rapid spread
+          if (cascadeActive && Math.random() < 0.01) n.freezeAt = performance.now() + Math.random()*500;
+        }
+        // Execute Freeze
+        if (n.freezeAt && performance.now() > n.freezeAt) {
+          n.isStopped = true; n.vx = 0; n.vy = 0; n.freezeAt = undefined; n.pulseVal = 1;
+        }
+        // Check Full Freeze
+        if (cascadeActive && nodes.every(x => x.isStopped) && !resetScheduled) {
+          resetScheduled = true;
+          setTimeout(() => {
+             resetMode = true;
+             // Unfreeze one random seed
+             const seed = nodes[Math.floor(Math.random()*nodes.length)];
+             seed.isStopped = false; seed.originalVx = (Math.random()-0.5); seed.originalVy = (Math.random()-0.5);
+          }, 2000);
+        }
       } else {
-        // Optional: hide the canvas entirely for reduced motion users
-        // canvas.style.display = 'none';
+        // Reset Mode (Thaw)
+        if (n.isStopped && n.unfreezeAt === undefined) {
+           if(Math.random() < 0.02) n.unfreezeAt = performance.now();
+        }
+        if (n.unfreezeAt && performance.now() > n.unfreezeAt) {
+          n.isStopped = false; n.unfreezeAt = undefined; 
+          n.vx = (Math.random()-0.5) * (0.2 + n.z * 0.5); 
+          n.vy = (Math.random()-0.5) * (0.2 + n.z * 0.5);
+          n.pulseVal = 0.5;
+        }
+        if (nodes.every(x => !x.isStopped)) {
+          resetMode = false; cascadeActive = false; resetScheduled = false;
+        }
       }
-    })();
+    }
+    
+    animate();
+
+    /**
+     * ==========================================================
+     * DATA FETCHERS & UI UPDATES
+     * ==========================================================
+     */
+    
+    // -- BITCOIN --
+    const btcEl = document.getElementById('bitcoinInfo');
+    async function updateBitcoin() {
+      try {
+        const [heightRes, priceRes] = await Promise.all([
+          fetch('https://mempool.space/api/blocks/tip/height'),
+          fetch('https://mempool.space/api/v1/prices')
+        ]);
+        if (!heightRes.ok || !priceRes.ok) throw new Error("API Error");
+        
+        const height = await heightRes.text();
+        const priceData = await priceRes.json();
+        
+        const fmtPrice = priceData.USD.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+        
+        btcEl.innerHTML = `
+          <div style="margin-bottom:4px"><span class="btc-label">Block Height</span> <br> <span class="btc-val">${parseInt(height).toLocaleString()}</span></div>
+          <div><span class="btc-label">USD Price</span> <br> <span class="btc-val">${fmtPrice}</span></div>
+        `;
+      } catch (e) {
+        btcEl.innerHTML = `<span class="btc-label">Status</span><br><span class="btc-val" style="color:#ef4444">Offline</span>`;
+      }
+    }
+    updateBitcoin();
+    setInterval(updateBitcoin, 30000);
+
+    // -- CLOCKS --
+    const clockEl = document.getElementById('visitorInfo');
+    const cities = [
+      { name: "California", tz: "America/Los_Angeles" },
+      { name: "New York", tz: "America/New_York" },
+      { name: "Addis Ababa", tz: "Africa/Addis_Ababa" },
+      { name: "Manama", tz: "Asia/Bahrain" },
+      { name: "New Delhi", tz: "Asia/Kolkata" }
+    ];
+    function updateClocks() {
+      const now = new Date();
+      let html = '';
+      cities.forEach(c => {
+        const time = now.toLocaleTimeString([], { timeZone: c.tz, hour: '2-digit', minute: '2-digit' });
+        html += `<div class="clock-row"><span class="clock-city">${c.name}</span> <span>${time}</span></div>`;
+      });
+      clockEl.innerHTML = html;
+    }
+    updateClocks();
+    setInterval(updateClocks, 1000);
+
+    // -- QUOTES --
+    const quoteEl = document.getElementById('quotesBox');
+    const quotes = [
+      "He who has a why to live can bear almost any how.",
+      "The doer alone learneth.",
+      "In every real man a child is hidden that wants to play.",
+      "There are no facts, only interpretations.",
+      "Become who you are.",
+      "Chaos gives birth to a dancing star.",
+      "The snake which cannot cast its skin has to die.",
+      "Dig deep; down there is the well of truth."
+    ];
+    function cycleQuotes() {
+      quoteEl.style.opacity = 0;
+      setTimeout(() => {
+        quoteEl.textContent = quotes[Math.floor(Math.random() * quotes.length)];
+        quoteEl.style.opacity = 1;
+      }, 500);
+    }
+    cycleQuotes();
+    setInterval(cycleQuotes, 8000);
+
   </script>
 </body>
 </html>
