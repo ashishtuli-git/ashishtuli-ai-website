@@ -21,14 +21,9 @@
       background: #000;
     }
 
-    /* Subtle Deep Gradient Background */
-    @keyframes deepSpace {
-      0%   { background: radial-gradient(circle at center, #1a2132 0%, #0a0d1a 100%); }
-      50%  { background: radial-gradient(circle at center, #24325a 0%, #0a0d1a 100%); }
-      100% { background: radial-gradient(circle at center, #1e293b 0%, #0a0d1a 100%); }
-    }
-    body.sunset { 
-      animation: deepSpace 20s ease-in-out infinite alternate; 
+    /* Background: Deep Void */
+    body {
+      background: radial-gradient(circle at center, #111827 0%, #000000 100%);
     }
 
     #neuralCanvas {
@@ -44,15 +39,15 @@
     .ui-container {
         padding: 0.8rem 1.2rem;
         border-radius: 12px;
-        background: rgba(255, 255, 255, 0.03); 
-        backdrop-filter: blur(8px); 
-        -webkit-backdrop-filter: blur(8px);
-        border: 1px solid rgba(255, 255, 255, 0.05);
+        background: rgba(255, 255, 255, 0.05); /* Slightly more visible glass */
+        backdrop-filter: blur(10px); 
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
         transition: transform 0.2s ease, background 0.2s;
     }
     .ui-container:hover {
-        background: rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(255, 255, 255, 0.15);
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.25);
         transform: scale(1.02);
     }
 
@@ -62,40 +57,40 @@
       z-index: 5; display: flex; gap: 20px; align-items: center;
     }
     .link-text {
-      font-weight: 600; text-decoration: none; color: #eee; letter-spacing: 0.5px;
+      font-weight: 600; text-decoration: none; color: #fff; letter-spacing: 0.5px; font-size: 1.1rem;
     }
     .double-struck-x {
-      font-weight: bold; text-decoration: none; font-size: 1.2rem; color: #eee;
+      font-weight: bold; text-decoration: none; font-size: 1.4rem; color: #fff;
     }
 
     /* Top Right: Bitcoin */
     #bitcoinInfo {
       position: absolute; top: 20px; right: 20px;
       z-index: 10; color: #eee;
-      font-size: 0.85rem; font-weight: 400;
+      font-size: 0.9rem; font-weight: 400;
       text-align: right; line-height: 1.4;
-      padding: 0.6rem 1rem;
+      padding: 0.8rem 1.2rem;
     }
 
     /* Bottom Left: Times */
     .visitor-info {
       position: absolute; bottom: 20px; left: 20px;
-      z-index: 3; font-size: 0.85rem; color: #ccc; line-height: 1.6;
+      z-index: 3; font-size: 0.9rem; color: #ddd; line-height: 1.6;
     }
 
     /* Bottom Right: Quotes */
     .quotes {
       position: absolute; bottom: 20px; right: 20px;
-      z-index: 3; max-width: 320px;
-      font-size: 0.9rem; font-style: italic; color: #ddd; text-align: right;
+      z-index: 3; max-width: 350px;
+      font-size: 1rem; font-style: italic; color: #eee; text-align: right;
     }
 
     /* Mobile */
     @media (max-width: 768px) {
-      .visitor-info, .quotes { font-size: 0.75rem; max-width: 250px; }
-      .link-text { font-size: 0.9rem; }
-      .ui-container { padding: 0.5rem 0.8rem; }
-      .visitor-info { bottom: 80px; } 
+      .visitor-info, .quotes { font-size: 0.8rem; max-width: 250px; }
+      .link-text { font-size: 1rem; }
+      .ui-container { padding: 0.6rem 0.9rem; }
+      .visitor-info { bottom: 90px; } 
     }
 
     @keyframes pulse {
@@ -107,7 +102,7 @@
     #xLink { animation: pulse 3s infinite ease-in-out; animation-delay: 1.5s; }
   </style>
 </head>
-<body class="sunset">
+<body>
   <canvas id="neuralCanvas"></canvas>
 
   <div class="top-left-links ui-container">
@@ -130,7 +125,7 @@
   <script>
     /**
      * ==========================================================
-     * 3D NEURAL NETWORK V3: Resizable Hubs & Shimmer
+     * 3D NEURAL NETWORK V4: Immersive Scale & Visibility
      * ==========================================================
      */
     const canvas = document.getElementById('neuralCanvas');
@@ -138,10 +133,10 @@
     
     // 3D Config
     let width, height;
-    const fov = 800; 
-    const nodeCount = window.innerWidth < 768 ? 45 : 120;
-    // Distance to form connection
-    let connectionDist = 150; 
+    const fov = 1000; // Larger FOV for immersive feel
+    // Increase node count slightly since we are spreading them out more
+    const nodeCount = window.innerWidth < 768 ? 50 : 160; 
+    let connectionDist = 200; 
     
     // State
     let nodes = [];
@@ -165,8 +160,8 @@
       canvas.style.width = width + "px";
       canvas.style.height = height + "px";
       
-      // Scale logic: make connection distance relative to screen size so it works on huge monitors
-      connectionDist = Math.min(width, height) * 0.15;
+      // Connection distance is relative to the larger dimension now
+      connectionDist = Math.max(width, height) * 0.18;
     }
     
     window.addEventListener('resize', () => { resize(); initNodes(); });
@@ -180,33 +175,27 @@
     // --- 3D UTILS ---
     function initNodes() {
       nodes = [];
-      // Dynamic sphere size to cover screen
-      const sphereRad = Math.min(width, height) * 0.45;
+      // IMMERSIVE SCALE: Use Math.max to ensure sphere is larger than the screen
+      const sphereRad = Math.max(width, height) * 0.85; 
       
       for(let i=0; i<nodeCount; i++) {
         const theta = Math.random() * Math.PI * 2;
         const phi = Math.acos((Math.random() * 2) - 1);
-        const r = (sphereRad * 0.5) + (Math.random() * sphereRad * 0.7); // Spread out
+        const r = (sphereRad * 0.2) + (Math.random() * sphereRad * 0.8); // Fill the volume
         
         nodes.push({
-          // Position
           x: r * Math.sin(phi) * Math.cos(theta),
           y: r * Math.sin(phi) * Math.sin(theta),
           z: r * Math.cos(phi),
-          // Velocity
-          vx: (Math.random() - 0.5) * 1.5,
-          vy: (Math.random() - 0.5) * 1.5,
-          vz: (Math.random() - 0.5) * 1.5,
-          // Storage for unfreeze
-          ovx: (Math.random() - 0.5) * 1.5,
-          ovy: (Math.random() - 0.5) * 1.5,
-          ovz: (Math.random() - 0.5) * 1.5,
-          
-          // Logic Stats
+          vx: (Math.random() - 0.5) * 2.0, // Faster internal movement
+          vy: (Math.random() - 0.5) * 2.0,
+          vz: (Math.random() - 0.5) * 2.0,
+          ovx: (Math.random() - 0.5) * 2.0,
+          ovy: (Math.random() - 0.5) * 2.0,
+          ovz: (Math.random() - 0.5) * 2.0,
           connections: 0,
           prevConnections: 0,
-          shimmer: 0, // 0 to 1 intensity
-          
+          shimmer: 0,
           isStopped: false,
           freezeAt: undefined,
           unfreezeAt: undefined
@@ -226,70 +215,61 @@
     function animate() {
       ctx.clearRect(0, 0, width, height);
       
-      // Camera Controls
-      targetRotation.y = mouse.x * 0.3; 
-      targetRotation.x = -mouse.y * 0.3; 
+      targetRotation.y = mouse.x * 0.2; // Slower rotation for massive feel
+      targetRotation.x = -mouse.y * 0.2; 
       currentRotation.x += (targetRotation.x - currentRotation.x) * 0.05;
       currentRotation.y += (targetRotation.y - currentRotation.y) * 0.05;
       const autoSpin = performance.now() * 0.0001;
       
       const projectedNodes = [];
-      const boxLimit = Math.min(width, height) * 0.6; // Soft boundary
+      // Bounds allow nodes to fly off screen slightly
+      const boxLimit = Math.max(width, height) * 0.9; 
 
-      // 1. UPDATE STATE & PROJECT
+      // 1. UPDATE
       nodes.forEach((n, index) => {
-        // Save previous connection count to detect new ones for shimmer
         n.prevConnections = n.connections;
         n.connections = 0; 
         
-        // Decay shimmer
-        if (n.shimmer > 0.01) n.shimmer *= 0.92; else n.shimmer = 0;
+        if (n.shimmer > 0.01) n.shimmer *= 0.9; else n.shimmer = 0;
 
-        // Physics
         if (!n.isStopped) {
            n.x += n.vx; n.y += n.vy; n.z += n.vz;
-           // Bounce gently
-           if(n.x > boxLimit) n.vx -= 0.05; if(n.x < -boxLimit) n.vx += 0.05;
-           if(n.y > boxLimit) n.vy -= 0.05; if(n.y < -boxLimit) n.vy += 0.05;
-           if(n.z > boxLimit) n.vz -= 0.05; if(n.z < -boxLimit) n.vz += 0.05;
+           // Soft bounce at very far edges
+           if(n.x > boxLimit) n.vx -= 0.1; if(n.x < -boxLimit) n.vx += 0.1;
+           if(n.y > boxLimit) n.vy -= 0.1; if(n.y < -boxLimit) n.vy += 0.1;
+           if(n.z > boxLimit) n.vz -= 0.1; if(n.z < -boxLimit) n.vz += 0.1;
         }
 
-        // Logic
         handleFreezeLogic(n);
 
-        // Rotation
         let p = { x: n.x, y: n.y, z: n.z };
         let r1 = rotateY(p.x, p.z, currentRotation.y + autoSpin);
         p.x = r1.x; p.z = r1.z;
         let r2 = rotateX(p.y, p.z, currentRotation.x);
         p.y = r2.y; p.z = r2.z;
         
-        // Projection
-        let scale = fov / (fov + p.z + 600); 
+        // Push camera back a bit to accommodate large sphere
+        let scale = fov / (fov + p.z + 800); 
         let x2d = (p.x * scale) + width/2;
         let y2d = (p.y * scale) + height/2;
         
         projectedNodes.push({ id: index, x: x2d, y: y2d, z: p.z, scale: scale, obj: n });
       });
 
-      // Sort for Painter's Algorithm
       projectedNodes.sort((a, b) => b.z - a.z);
 
-      // 2. CALCULATE CONNECTIONS & DRAW LINES
-      // We calculate connections here to determine size later
+      // 2. DRAW LINES (Thicker & Brighter)
       for (let i = 0; i < projectedNodes.length; i++) {
         let p1 = projectedNodes[i];
         for (let j = i + 1; j < projectedNodes.length; j++) {
            let p2 = projectedNodes[j];
            
-           // 3D Distance check
            let dx = p1.obj.x - p2.obj.x;
            let dy = p1.obj.y - p2.obj.y;
            let dz = p1.obj.z - p2.obj.z;
            let dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
 
            if (dist < connectionDist) {
-              // Valid connection
               if (p1.obj.isStopped !== p2.obj.isStopped) continue;
               
               p1.obj.connections++;
@@ -299,53 +279,48 @@
               ctx.moveTo(p1.x, p1.y);
               ctx.lineTo(p2.x, p2.y);
               
-              let alpha = (p1.scale + p2.scale) * 0.15;
+              let alpha = (p1.scale + p2.scale) * 0.25; // Higher opacity
+              if(alpha > 0.8) alpha = 0.8;
+
               if (p1.obj.isStopped) {
-                  ctx.strokeStyle = `rgba(255, 80, 80, ${alpha})`;
-                  ctx.lineWidth = 1.2 * p1.scale;
+                  ctx.strokeStyle = `rgba(255, 60, 60, ${alpha})`;
+                  ctx.lineWidth = 2.5 * p1.scale; // Very thick for frozen
               } else {
-                  ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
-                  ctx.lineWidth = 0.6 * p1.scale;
+                  ctx.strokeStyle = `rgba(200, 220, 255, ${alpha})`; // Bright blue-white
+                  ctx.lineWidth = 1.0 * p1.scale; // Thicker base line
               }
               ctx.stroke();
            }
         }
       }
 
-      // 3. CHECK SHIMMER & DRAW NODES
+      // 3. DRAW NODES (Bigger & Adaptive)
       projectedNodes.forEach(p => {
          let n = p.obj;
-         
-         // Trigger Shimmer if gained a connection
          if (n.connections > n.prevConnections) n.shimmer = 1.0;
 
-         // Dynamic Size: Base 2 + 0.6 per connection
-         // This scales up hubs significantly
-         let baseRadius = (2 + (n.connections * 0.8)) * p.scale;
-         if (n.isStopped) baseRadius *= 1.2; // Frozen nodes look slightly chunkier
-
+         // SIZE LOGIC: Start at 4px, grow by 1.5px per connection
+         // Hubs will become massive (e.g., 10 connections = 19px radius)
+         let baseRadius = (4 + (n.connections * 1.5)) * p.scale;
+         
          ctx.beginPath();
          ctx.arc(p.x, p.y, baseRadius, 0, Math.PI * 2);
          
-         // Color Mixing
          if (n.isStopped) {
-             // Reddish frozen color + shimmer white
-             let r = 255, g = 80 + (n.shimmer * 175), b = 80 + (n.shimmer * 175);
+             let r = 255, g = 60 + (n.shimmer * 195), b = 60 + (n.shimmer * 195);
              ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${p.scale})`;
          } else {
-             // Normal Blue/White + shimmer boost
-             let val = 200 + (n.shimmer * 55); 
-             // Higher alpha for shimmer
-             let alpha = (0.5 * p.scale) + (n.shimmer * 0.5); 
-             ctx.fillStyle = `rgba(${val}, ${val}, ${val}, ${alpha})`;
+             // Bright white/blue core
+             let val = 220 + (n.shimmer * 35); 
+             ctx.fillStyle = `rgba(${val}, ${val}, ${val}, ${p.scale})`;
          }
          ctx.fill();
          
-         // Extra sparkle for shimmers
-         if (n.shimmer > 0.1) {
+         // Glow/Shimmer Ring
+         if (n.shimmer > 0.1 || n.connections > 5) {
             ctx.beginPath();
-            ctx.arc(p.x, p.y, baseRadius * 2, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(255, 255, 255, ${n.shimmer * 0.3})`;
+            ctx.arc(p.x, p.y, baseRadius * 1.4, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255, 255, 255, ${0.15 * p.scale})`;
             ctx.fill();
          }
       });
@@ -356,15 +331,16 @@
     // --- CASCADE LOGIC ---
     function handleFreezeLogic(n) {
         if (!resetMode) {
-            if (!cascadeActive && !resetScheduled && n.connections > 12 && !n.isStopped) {
+            // Trigger earlier (at 8 connections) to see it happen more often with bigger nodes
+            if (!cascadeActive && !resetScheduled && n.connections > 8 && !n.isStopped) {
                 cascadeActive = true; n.isStopped = true; n.vx=0; n.vy=0; n.vz=0;
             }
             if (cascadeActive && !resetScheduled && !n.isStopped) {
-                if (Math.random() < 0.015) n.freezeAt = performance.now() + 500;
+                if (Math.random() < 0.02) n.freezeAt = performance.now() + 500;
             }
             if (n.freezeAt && performance.now() > n.freezeAt) {
                  n.isStopped = true; n.vx=0; n.vy=0; n.vz=0; n.freezeAt = undefined;
-                 n.shimmer = 1; // Flash on freeze
+                 n.shimmer = 1; 
             }
             if (cascadeActive && nodes.every(x => x.isStopped) && !resetScheduled) {
                 resetScheduled = true;
@@ -381,9 +357,9 @@
             }
             if (n.unfreezeAt && performance.now() > n.unfreezeAt) {
                  n.isStopped = false; 
-                 n.vx = (Math.random()-0.5)*2; n.vy = (Math.random()-0.5)*2; n.vz = (Math.random()-0.5)*2;
+                 n.vx = (Math.random()-0.5)*2.5; n.vy = (Math.random()-0.5)*2.5; n.vz = (Math.random()-0.5)*2.5;
                  n.unfreezeAt = undefined;
-                 n.shimmer = 1; // Flash on thaw
+                 n.shimmer = 1;
             }
             if (nodes.every(x => !x.isStopped)) {
                 resetMode = false; cascadeActive = false; resetScheduled = false;
