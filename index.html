@@ -125,7 +125,7 @@
   <script>
     /**
      * ==========================================================
-     * 3D NEURAL NETWORK V5: Gravity & Stability Fix
+     * 3D NEURAL NETWORK V6: ANTI-COLLAPSE PHYSICS
      * ==========================================================
      */
     const canvas = document.getElementById('neuralCanvas');
@@ -134,8 +134,7 @@
     // 3D Config
     let width, height;
     const fov = 1000; 
-    // Increased node count to ensure density matches volume
-    const nodeCount = window.innerWidth < 768 ? 60 : 180; 
+    const nodeCount = window.innerWidth < 768 ? 60 : 160; 
     let connectionDist = 200; 
     
     // State
@@ -159,34 +158,29 @@
       ctx.scale(dpr, dpr);
       canvas.style.width = width + "px";
       canvas.style.height = height + "px";
-      
-      // Connection distance relative to screen size
-      connectionDist = Math.max(width, height) * 0.15;
+      connectionDist = Math.max(width, height) * 0.18;
     }
-    
     window.addEventListener('resize', () => { resize(); initNodes(); });
     window.addEventListener('mousemove', e => { 
         mouse.x = (e.clientX / width) * 2 - 1;
         mouse.y = (e.clientY / height) * 2 - 1;
     });
-    
     resize();
 
     // --- 3D UTILS ---
     function initNodes() {
       nodes = [];
-      const volumeRad = Math.max(width, height) * 0.6; 
+      // Use a volume spread
+      const maxDim = Math.max(width, height);
       
       for(let i=0; i<nodeCount; i++) {
-        // Initialize in a random cloud
         nodes.push({
-          x: (Math.random() - 0.5) * volumeRad * 2,
-          y: (Math.random() - 0.5) * volumeRad * 2,
-          z: (Math.random() - 0.5) * volumeRad * 2,
-          vx: (Math.random() - 0.5) * 1.5,
-          vy: (Math.random() - 0.5) * 1.5,
-          vz: (Math.random() - 0.5) * 1.5,
-          ovx: 0, ovy: 0, ovz: 0, // Store original V
+          x: (Math.random() - 0.5) * maxDim,
+          y: (Math.random() - 0.5) * maxDim,
+          z: (Math.random() - 0.5) * maxDim,
+          vx: (Math.random() - 0.5) * 2,
+          vy: (Math.random() - 0.5) * 2,
+          vz: (Math.random() - 0.5) * 2,
           connections: 0,
           prevConnections: 0,
           shimmer: 0,
@@ -216,38 +210,43 @@
       const autoSpin = performance.now() * 0.0001;
       
       const projectedNodes = [];
-      
-      // Physics Constants
-      const gravity = 0.0005; // Pulls nodes to center (0,0,0)
-      const friction = 0.99; // Prevents infinite acceleration
+      const boxLimit = Math.max(width, height) * 0.6; 
+      const repulsionDist = 60; // Distance to push neighbors away
 
-      // 1. UPDATE STATE & PHYSICS
+      // 1. PHYSICS UPDATE
       nodes.forEach((n, index) => {
         n.prevConnections = n.connections;
         n.connections = 0; 
-        
-        // Decay shimmer
         if (n.shimmer > 0.01) n.shimmer *= 0.9; else n.shimmer = 0;
 
-        // --- PHYSICS ENGINE UPGRADE ---
         if (!n.isStopped) {
-           // Apply Gravity (Pull to Center)
-           n.vx -= n.x * gravity;
-           n.vy -= n.y * gravity;
-           n.vz -= n.z * gravity;
+            // A. REPULSION (Prevents collapse)
+            // Simplified: Push away if too close to center, or simple brownian jitter
+            // We use a "Soft Boundary" logic instead of center gravity
+            
+            // B. CONTAINMENT (Fishbowl)
+            // Instead of pulling to 0,0,0, we only push back if outside the box
+            if (n.x > boxLimit) n.vx -= 0.05;
+            else if (n.x < -boxLimit) n.vx += 0.05;
+            
+            if (n.y > boxLimit) n.vy -= 0.05;
+            else if (n.y < -boxLimit) n.vy += 0.05;
 
-           // Apply Velocity
-           n.x += n.vx;
-           n.y += n.vy;
-           n.z += n.vz;
+            if (n.z > boxLimit) n.vz -= 0.05;
+            else if (n.z < -boxLimit) n.vz += 0.05;
 
-           // Apply Friction (Damping)
-           n.vx *= friction;
-           n.vy *= friction;
-           n.vz *= friction;
+            // Apply velocity
+            n.x += n.vx;
+            n.y += n.vy;
+            n.z += n.vz;
+
+            // Drag/Friction (keep speeds sane)
+            n.vx *= 0.99; n.vy *= 0.99; n.vz *= 0.99;
         }
 
-        handleFreezeLogic(n);
+        // Handle Logic
+        if(resetMode) processThawLogic(n);
+        else handleFreezeLogic(n);
 
         // Rotation & Projection
         let p = { x: n.x, y: n.y, z: n.z };
@@ -263,14 +262,38 @@
         projectedNodes.push({ id: index, x: x2d, y: y2d, z: p.z, scale: scale, obj: n });
       });
 
+      // 2. REPULSION (N^2 Check for overlaps)
+      // This prevents the "Big White Node" singularity
+      for(let i=0; i<nodes.length; i++) {
+          if(nodes[i].isStopped) continue;
+          for(let j=i+1; j<nodes.length; j++) {
+              if(nodes[j].isStopped) continue;
+              let dx = nodes[i].x - nodes[j].x;
+              let dy = nodes[i].y - nodes[j].y;
+              let dz = nodes[i].z - nodes[j].z;
+              let d2 = dx*dx + dy*dy + dz*dz;
+              // If closer than 80 units
+              if(d2 < 6400) { 
+                  let dist = Math.sqrt(d2);
+                  if(dist < 1) dist = 1; 
+                  let force = (80 - dist) * 0.001; // Gentle push
+                  let fx = (dx/dist) * force;
+                  let fy = (dy/dist) * force;
+                  let fz = (dz/dist) * force;
+                  
+                  nodes[i].vx += fx; nodes[i].vy += fy; nodes[i].vz += fz;
+                  nodes[j].vx -= fx; nodes[j].vy -= fy; nodes[j].vz -= fz;
+              }
+          }
+      }
+
       projectedNodes.sort((a, b) => b.z - a.z);
 
-      // 2. DRAW LINES
+      // 3. DRAW LINES
       for (let i = 0; i < projectedNodes.length; i++) {
         let p1 = projectedNodes[i];
         for (let j = i + 1; j < projectedNodes.length; j++) {
            let p2 = projectedNodes[j];
-           
            let dx = p1.obj.x - p2.obj.x;
            let dy = p1.obj.y - p2.obj.y;
            let dz = p1.obj.z - p2.obj.z;
@@ -278,9 +301,7 @@
 
            if (dist < connectionDist) {
               if (p1.obj.isStopped !== p2.obj.isStopped) continue;
-              
-              p1.obj.connections++;
-              p2.obj.connections++;
+              p1.obj.connections++; p2.obj.connections++;
               
               ctx.beginPath();
               ctx.moveTo(p1.x, p1.y);
@@ -288,7 +309,6 @@
               
               let alpha = (p1.scale + p2.scale) * 0.25;
               if(alpha > 0.8) alpha = 0.8;
-
               if (p1.obj.isStopped) {
                   ctx.strokeStyle = `rgba(255, 60, 60, ${alpha})`;
                   ctx.lineWidth = 2.5 * p1.scale;
@@ -301,17 +321,14 @@
         }
       }
 
-      // 3. DRAW NODES
+      // 4. DRAW NODES
       projectedNodes.forEach(p => {
          let n = p.obj;
          if (n.connections > n.prevConnections) n.shimmer = 1.0;
-
-         // Node Size: Grows with connections
          let baseRadius = (4 + (n.connections * 1.5)) * p.scale;
          
          ctx.beginPath();
          ctx.arc(p.x, p.y, baseRadius, 0, Math.PI * 2);
-         
          if (n.isStopped) {
              let r = 255, g = 60 + (n.shimmer * 195), b = 60 + (n.shimmer * 195);
              ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${p.scale})`;
@@ -320,7 +337,6 @@
              ctx.fillStyle = `rgba(${val}, ${val}, ${val}, ${p.scale})`;
          }
          ctx.fill();
-         
          if (n.shimmer > 0.1 || n.connections > 5) {
             ctx.beginPath();
             ctx.arc(p.x, p.y, baseRadius * 1.4, 0, Math.PI * 2);
@@ -332,84 +348,44 @@
       requestAnimationFrame(animate);
     }
     
-    // --- CASCADE & FREEZE LOGIC (ROBUST VERSION) ---
+    // --- CASCADE & FREEZE LOGIC ---
     function handleFreezeLogic(n) {
-        if (!resetMode) {
-            // Trigger Freeze: High connectivity starts the chain reaction
-            if (!cascadeActive && !resetScheduled && n.connections > 10 && !n.isStopped) {
-                cascadeActive = true; 
-                n.isStopped = true; n.vx=0; n.vy=0; n.vz=0;
-            }
-            
-            // Spread Freeze
-            if (cascadeActive && !resetScheduled && !n.isStopped) {
-                // If cascade is active, freeze rapidly
-                if (Math.random() < 0.03) n.freezeAt = performance.now() + 200;
-            }
-            if (n.freezeAt && performance.now() > n.freezeAt) {
-                 n.isStopped = true; n.vx=0; n.vy=0; n.vz=0; n.freezeAt = undefined;
-                 n.shimmer = 1; 
-            }
-            
-            // Check for System Reset
-            // We use a looser check: if >90% are frozen, reset
-            const frozenCount = nodes.filter(x => x.isStopped).length;
-            if (cascadeActive && frozenCount > nodes.length * 0.9 && !resetScheduled) {
-                resetScheduled = true;
-                setTimeout(() => {
-                    resetMode = true;
-                    // Trigger Thaw
-                    triggerThaw();
-                }, 1500); // Shorter pause before reset
-            }
+        if (!cascadeActive && !resetScheduled && n.connections > 10 && !n.isStopped) {
+            cascadeActive = true; n.isStopped = true; n.vx=0; n.vy=0; n.vz=0;
+        }
+        if (cascadeActive && !resetScheduled && !n.isStopped) {
+            if (Math.random() < 0.03) n.freezeAt = performance.now() + 200;
+        }
+        if (n.freezeAt && performance.now() > n.freezeAt) {
+             n.isStopped = true; n.vx=0; n.vy=0; n.vz=0; n.freezeAt = undefined;
+             n.shimmer = 1; 
+        }
+        // Check for Reset
+        const frozenCount = nodes.filter(x => x.isStopped).length;
+        if (cascadeActive && frozenCount > nodes.length * 0.9 && !resetScheduled) {
+            resetScheduled = true;
+            setTimeout(() => { resetMode = true; triggerThaw(); }, 1500);
         }
     }
     
-    // Helper to thaw everything
     function triggerThaw() {
-        nodes.forEach(node => {
-            // Assign random delay for ripple effect
-            node.unfreezeAt = performance.now() + Math.random() * 800;
-        });
+        nodes.forEach(node => { node.unfreezeAt = performance.now() + Math.random() * 800; });
     }
 
-    // Logic inside animate loop to process thaw
     function processThawLogic(n) {
-         if (resetMode && n.isStopped && n.unfreezeAt && performance.now() > n.unfreezeAt) {
+         if (n.isStopped && n.unfreezeAt && performance.now() > n.unfreezeAt) {
              n.isStopped = false; 
              // Explosive Restart
-             n.vx = (Math.random()-0.5) * 4; 
-             n.vy = (Math.random()-0.5) * 4; 
-             n.vz = (Math.random()-0.5) * 4;
+             n.vx = (Math.random()-0.5) * 5; 
+             n.vy = (Math.random()-0.5) * 5; 
+             n.vz = (Math.random()-0.5) * 5;
              n.unfreezeAt = undefined;
              n.shimmer = 1;
          }
-         // End reset mode when all active
-         if (resetMode && nodes.every(x => !x.isStopped)) {
+         if (nodes.every(x => !x.isStopped)) {
             resetMode = false; cascadeActive = false; resetScheduled = false;
          }
     }
-    
-    // Monkey-patch into the main loop:
-    // We need to call processThawLogic inside animate, 
-    // but I can't easily edit the animate function above without rewriting the whole block.
-    // **CRITICAL FIX**: I merged handleFreezeLogic and processThawLogic in the main loop below.
-    // (This comment is for clarity, the actual code execution uses the updated animate logic below)
-    
-    /* * RE-WRITING ANIMATE LOOP's LOGIC CALL SECTION TO INCLUDE THAW 
-     * (Implicitly handled by `handleFreezeLogic` having the thaw branch previously? 
-     * No, I split it. Let's merge it back for simplicity in this file.)
-     */
-     
-     // Redefining handleFreezeLogic to handle BOTH states cleanly
-     const oldFreeze = handleFreezeLogic;
-     handleFreezeLogic = function(n) {
-        if(resetMode) {
-             processThawLogic(n);
-        } else {
-             oldFreeze(n);
-        }
-     }
 
     animate();
 
