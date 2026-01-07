@@ -18,10 +18,10 @@
       width: 100%; height: 100%;
       overflow: hidden; 
       font-family: 'Inter', sans-serif;
-      background: #000; /* Deep black base */
+      background: #000;
     }
 
-    /* Subtle Deep Gradient */
+    /* Subtle Deep Gradient Background */
     @keyframes deepSpace {
       0%   { background: radial-gradient(circle at center, #1a2132 0%, #0a0d1a 100%); }
       50%  { background: radial-gradient(circle at center, #24325a 0%, #0a0d1a 100%); }
@@ -39,7 +39,7 @@
     }
 
     /* -------------------------------------------
-       UI: CLEAN GLASS (Reverted Style)
+       UI: GLASSMORPHISM
        ------------------------------------------- */
     .ui-container {
         padding: 0.8rem 1.2rem;
@@ -98,7 +98,6 @@
       .visitor-info { bottom: 80px; } 
     }
 
-    /* Pulse */
     @keyframes pulse {
       0% { transform: scale(1); opacity: 0.9; }
       50% { transform: scale(1.05); opacity: 1; }
@@ -131,7 +130,7 @@
   <script>
     /**
      * ==========================================================
-     * 3D ROTATING NETWORK ENGINE
+     * 3D NEURAL NETWORK V3: Resizable Hubs & Shimmer
      * ==========================================================
      */
     const canvas = document.getElementById('neuralCanvas');
@@ -139,26 +138,23 @@
     
     // 3D Config
     let width, height;
-    const fov = 600; // Field of view
-    const nodeCount = window.innerWidth < 768 ? 40 : 100;
-    const connectionDist = 150;
+    const fov = 800; 
+    const nodeCount = window.innerWidth < 768 ? 45 : 120;
+    // Distance to form connection
+    let connectionDist = 150; 
     
     // State
     let nodes = [];
     let mouse = { x: 0, y: 0 };
-    let targetRotation = { x: 0, y: 0 }; // Controlled by mouse
-    let currentRotation = { x: 0, y: 0 }; // Smoothed
+    let targetRotation = { x: 0, y: 0 }; 
+    let currentRotation = { x: 0, y: 0 };
     
-    // Colors
-    const colorActive = { r: 255, g: 255, b: 255 }; 
-    const colorFrozen = { r: 255, g: 80, b: 80 }; // Reddish/Maroon for frozen
-    
-    // Flags
+    // Logic Flags
     let cascadeActive = false;
     let resetMode = false;
     let resetScheduled = false;
 
-    // --- SETUP ---
+    // --- SETUP & RESIZE ---
     function resize() {
       width = window.innerWidth;
       height = window.innerHeight;
@@ -168,12 +164,13 @@
       ctx.scale(dpr, dpr);
       canvas.style.width = width + "px";
       canvas.style.height = height + "px";
+      
+      // Scale logic: make connection distance relative to screen size so it works on huge monitors
+      connectionDist = Math.min(width, height) * 0.15;
     }
-    window.addEventListener('resize', () => { resize(); initNodes(); });
     
-    // Mouse interaction controls rotation
+    window.addEventListener('resize', () => { resize(); initNodes(); });
     window.addEventListener('mousemove', e => { 
-        // Normalize mouse from -1 to 1
         mouse.x = (e.clientX / width) * 2 - 1;
         mouse.y = (e.clientY / height) * 2 - 1;
     });
@@ -183,30 +180,33 @@
     // --- 3D UTILS ---
     function initNodes() {
       nodes = [];
+      // Dynamic sphere size to cover screen
+      const sphereRad = Math.min(width, height) * 0.45;
+      
       for(let i=0; i<nodeCount; i++) {
-        // Distribute in a random sphere
         const theta = Math.random() * Math.PI * 2;
         const phi = Math.acos((Math.random() * 2) - 1);
-        const r = 200 + Math.random() * 200; // Radius of sphere cloud
+        const r = (sphereRad * 0.5) + (Math.random() * sphereRad * 0.7); // Spread out
         
         nodes.push({
-          // 3D position
+          // Position
           x: r * Math.sin(phi) * Math.cos(theta),
           y: r * Math.sin(phi) * Math.sin(theta),
           z: r * Math.cos(phi),
+          // Velocity
+          vx: (Math.random() - 0.5) * 1.5,
+          vy: (Math.random() - 0.5) * 1.5,
+          vz: (Math.random() - 0.5) * 1.5,
+          // Storage for unfreeze
+          ovx: (Math.random() - 0.5) * 1.5,
+          ovy: (Math.random() - 0.5) * 1.5,
+          ovz: (Math.random() - 0.5) * 1.5,
           
-          // Velocity (internal movement)
-          vx: (Math.random() - 0.5) * 1,
-          vy: (Math.random() - 0.5) * 1,
-          vz: (Math.random() - 0.5) * 1,
-          
-          // Original V for unfreeze
-          ovx: (Math.random() - 0.5) * 1,
-          ovy: (Math.random() - 0.5) * 1,
-          ovz: (Math.random() - 0.5) * 1,
-
-          // Logic
+          // Logic Stats
           connections: 0,
+          prevConnections: 0,
+          shimmer: 0, // 0 to 1 intensity
+          
           isStopped: false,
           freezeAt: undefined,
           unfreezeAt: undefined
@@ -215,102 +215,81 @@
     }
     initNodes();
 
-    // Rotate point (x,y,z) around axis
     function rotateY(x, z, angle) {
-        return { 
-            x: x * Math.cos(angle) - z * Math.sin(angle), 
-            z: x * Math.sin(angle) + z * Math.cos(angle) 
-        };
+        return { x: x * Math.cos(angle) - z * Math.sin(angle), z: x * Math.sin(angle) + z * Math.cos(angle) };
     }
     function rotateX(y, z, angle) {
-        return { 
-            y: y * Math.cos(angle) - z * Math.sin(angle), 
-            z: y * Math.sin(angle) + z * Math.cos(angle) 
-        };
+        return { y: y * Math.cos(angle) - z * Math.sin(angle), z: y * Math.sin(angle) + z * Math.cos(angle) };
     }
 
     // --- ANIMATION LOOP ---
     function animate() {
       ctx.clearRect(0, 0, width, height);
       
-      // Smooth Camera Rotation
-      targetRotation.y = mouse.x * 0.5; // Yaw
-      targetRotation.x = -mouse.y * 0.5; // Pitch
-      
-      // Auto-rotation override if idle, or just add to it
+      // Camera Controls
+      targetRotation.y = mouse.x * 0.3; 
+      targetRotation.x = -mouse.y * 0.3; 
       currentRotation.x += (targetRotation.x - currentRotation.x) * 0.05;
       currentRotation.y += (targetRotation.y - currentRotation.y) * 0.05;
+      const autoSpin = performance.now() * 0.0001;
       
-      // Constant background spin
-      const autoSpin = performance.now() * 0.0002;
-      
-      // 1. Update & Project Nodes
       const projectedNodes = [];
-      
+      const boxLimit = Math.min(width, height) * 0.6; // Soft boundary
+
+      // 1. UPDATE STATE & PROJECT
       nodes.forEach((n, index) => {
-        n.connections = 0; // Reset
+        // Save previous connection count to detect new ones for shimmer
+        n.prevConnections = n.connections;
+        n.connections = 0; 
         
-        // Internal Physics (The wiggling inside the cloud)
+        // Decay shimmer
+        if (n.shimmer > 0.01) n.shimmer *= 0.92; else n.shimmer = 0;
+
+        // Physics
         if (!n.isStopped) {
            n.x += n.vx; n.y += n.vy; n.z += n.vz;
-           
-           // Soft boundaries - push back if too far
-           const limit = 400;
-           if(n.x > limit) n.vx -= 0.05; if(n.x < -limit) n.vx += 0.05;
-           if(n.y > limit) n.vy -= 0.05; if(n.y < -limit) n.vy += 0.05;
-           if(n.z > limit) n.vz -= 0.05; if(n.z < -limit) n.vz += 0.05;
+           // Bounce gently
+           if(n.x > boxLimit) n.vx -= 0.05; if(n.x < -boxLimit) n.vx += 0.05;
+           if(n.y > boxLimit) n.vy -= 0.05; if(n.y < -boxLimit) n.vy += 0.05;
+           if(n.z > boxLimit) n.vz -= 0.05; if(n.z < -boxLimit) n.vz += 0.05;
         }
 
-        // Logic: Cascade Freezing
+        // Logic
         handleFreezeLogic(n);
 
-        // 3D Transformation
-        // First, apply rotation based on mouse/time
+        // Rotation
         let p = { x: n.x, y: n.y, z: n.z };
-        
-        // Rotate Y (Spin)
         let r1 = rotateY(p.x, p.z, currentRotation.y + autoSpin);
         p.x = r1.x; p.z = r1.z;
-        
-        // Rotate X (Tilt)
         let r2 = rotateX(p.y, p.z, currentRotation.x);
         p.y = r2.y; p.z = r2.z;
         
-        // Projection (3D -> 2D)
-        // Camera is at z = -fov
-        let scale = fov / (fov + p.z + 400); // Offset z so it's in front of camera
+        // Projection
+        let scale = fov / (fov + p.z + 600); 
         let x2d = (p.x * scale) + width/2;
         let y2d = (p.y * scale) + height/2;
         
-        projectedNodes.push({
-            id: index,
-            x: x2d, y: y2d, z: p.z, scale: scale,
-            obj: n
-        });
+        projectedNodes.push({ id: index, x: x2d, y: y2d, z: p.z, scale: scale, obj: n });
       });
 
-      // Sort by Z (Painter's Algorithm) so back nodes draw first
+      // Sort for Painter's Algorithm
       projectedNodes.sort((a, b) => b.z - a.z);
 
-      // 2. Draw Connections
+      // 2. CALCULATE CONNECTIONS & DRAW LINES
+      // We calculate connections here to determine size later
       for (let i = 0; i < projectedNodes.length; i++) {
         let p1 = projectedNodes[i];
-        
-        // Only check forward to avoid duplicates, but check against all (performance hit but accurate)
-        // Optimization: only check neighbors in sorted array? No, spatial index needed.
-        // Simple O(N^2) is fine for < 150 nodes.
         for (let j = i + 1; j < projectedNodes.length; j++) {
            let p2 = projectedNodes[j];
            
-           // Distance Calculation (Visual distance on screen vs 3D distance?)
-           // Let's use 3D distance for connectivity logic
+           // 3D Distance check
            let dx = p1.obj.x - p2.obj.x;
            let dy = p1.obj.y - p2.obj.y;
            let dz = p1.obj.z - p2.obj.z;
            let dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
 
            if (dist < connectionDist) {
-              // Don't connect frozen to active
+              // Valid connection
               if (p1.obj.isStopped !== p2.obj.isStopped) continue;
               
               p1.obj.connections++;
@@ -320,43 +299,54 @@
               ctx.moveTo(p1.x, p1.y);
               ctx.lineTo(p2.x, p2.y);
               
-              // Fade based on Z-depth
-              let alpha = (p1.scale + p2.scale) / 2 * 0.4; // Base opacity
-              if(alpha < 0) alpha = 0;
-              
+              let alpha = (p1.scale + p2.scale) * 0.15;
               if (p1.obj.isStopped) {
-                  ctx.strokeStyle = `rgba(${colorFrozen.r}, ${colorFrozen.g}, ${colorFrozen.b}, ${alpha * 1.5})`;
-                  ctx.lineWidth = 1.5 * p1.scale;
+                  ctx.strokeStyle = `rgba(255, 80, 80, ${alpha})`;
+                  ctx.lineWidth = 1.2 * p1.scale;
               } else {
-                  ctx.strokeStyle = `rgba(${colorActive.r}, ${colorActive.g}, ${colorActive.b}, ${alpha})`;
-                  ctx.lineWidth = 0.5 * p1.scale;
+                  ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
+                  ctx.lineWidth = 0.6 * p1.scale;
               }
               ctx.stroke();
            }
         }
       }
 
-      // 3. Draw Nodes
+      // 3. CHECK SHIMMER & DRAW NODES
       projectedNodes.forEach(p => {
          let n = p.obj;
-         let radius = (n.isStopped ? 4 : 2) * p.scale; // Frozen nodes pop bigger
          
+         // Trigger Shimmer if gained a connection
+         if (n.connections > n.prevConnections) n.shimmer = 1.0;
+
+         // Dynamic Size: Base 2 + 0.6 per connection
+         // This scales up hubs significantly
+         let baseRadius = (2 + (n.connections * 0.8)) * p.scale;
+         if (n.isStopped) baseRadius *= 1.2; // Frozen nodes look slightly chunkier
+
          ctx.beginPath();
-         ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
+         ctx.arc(p.x, p.y, baseRadius, 0, Math.PI * 2);
          
+         // Color Mixing
          if (n.isStopped) {
-             ctx.fillStyle = `rgba(${colorFrozen.r}, ${colorFrozen.g}, ${colorFrozen.b}, ${p.scale})`;
+             // Reddish frozen color + shimmer white
+             let r = 255, g = 80 + (n.shimmer * 175), b = 80 + (n.shimmer * 175);
+             ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${p.scale})`;
          } else {
-             ctx.fillStyle = `rgba(${colorActive.r}, ${colorActive.g}, ${colorActive.b}, ${p.scale * 0.8})`;
+             // Normal Blue/White + shimmer boost
+             let val = 200 + (n.shimmer * 55); 
+             // Higher alpha for shimmer
+             let alpha = (0.5 * p.scale) + (n.shimmer * 0.5); 
+             ctx.fillStyle = `rgba(${val}, ${val}, ${val}, ${alpha})`;
          }
          ctx.fill();
          
-         // Halo for active hubs
-         if (!n.isStopped && n.connections > 5) {
-             ctx.beginPath();
-             ctx.arc(p.x, p.y, radius * 3, 0, Math.PI * 2);
-             ctx.fillStyle = `rgba(255, 255, 255, ${0.05 * p.scale})`;
-             ctx.fill();
+         // Extra sparkle for shimmers
+         if (n.shimmer > 0.1) {
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, baseRadius * 2, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255, 255, 255, ${n.shimmer * 0.3})`;
+            ctx.fill();
          }
       });
       
@@ -366,45 +356,34 @@
     // --- CASCADE LOGIC ---
     function handleFreezeLogic(n) {
         if (!resetMode) {
-            // Trigger Freeze
-            if (!cascadeActive && !resetScheduled && n.connections > 10 && !n.isStopped) {
-                cascadeActive = true;
-                n.isStopped = true; n.vx=0; n.vy=0; n.vz=0; // Stop internal movement
+            if (!cascadeActive && !resetScheduled && n.connections > 12 && !n.isStopped) {
+                cascadeActive = true; n.isStopped = true; n.vx=0; n.vy=0; n.vz=0;
             }
-            // Spread Freeze (Proximity Check)
             if (cascadeActive && !resetScheduled && !n.isStopped) {
-                // If I am connected to many frozen nodes, I freeze
-                // Simplified for performance: Random chance if cascade is on
-                if (Math.random() < 0.015) { 
-                    n.freezeAt = performance.now() + 500; 
-                }
+                if (Math.random() < 0.015) n.freezeAt = performance.now() + 500;
             }
             if (n.freezeAt && performance.now() > n.freezeAt) {
                  n.isStopped = true; n.vx=0; n.vy=0; n.vz=0; n.freezeAt = undefined;
+                 n.shimmer = 1; // Flash on freeze
             }
-            // Check All Frozen
             if (cascadeActive && nodes.every(x => x.isStopped) && !resetScheduled) {
                 resetScheduled = true;
                 setTimeout(() => {
                     resetMode = true;
-                    // Unfreeze a seed
                     let idx = Math.floor(Math.random() * nodes.length);
                     nodes[idx].isStopped = false;
                     nodes[idx].vx = nodes[idx].ovx; nodes[idx].vy = nodes[idx].ovy; nodes[idx].vz = nodes[idx].ovz;
-                }, 2500);
+                }, 2000);
             }
         } else {
-            // Thaw
             if (n.isStopped && !n.unfreezeAt && Math.random() < 0.02) {
                  n.unfreezeAt = performance.now() + Math.random()*500;
             }
             if (n.unfreezeAt && performance.now() > n.unfreezeAt) {
                  n.isStopped = false; 
-                 // Explode out slightly
-                 n.vx = (Math.random()-0.5)*1.5; 
-                 n.vy = (Math.random()-0.5)*1.5; 
-                 n.vz = (Math.random()-0.5)*1.5;
+                 n.vx = (Math.random()-0.5)*2; n.vy = (Math.random()-0.5)*2; n.vz = (Math.random()-0.5)*2;
                  n.unfreezeAt = undefined;
+                 n.shimmer = 1; // Flash on thaw
             }
             if (nodes.every(x => !x.isStopped)) {
                 resetMode = false; cascadeActive = false; resetScheduled = false;
@@ -416,11 +395,9 @@
 
     /**
      * ==========================================================
-     * UI LOGIC (Bitcoin, Time, Quotes)
+     * DATA APIS
      * ==========================================================
      */
-    
-    // Bitcoin (Mempool API)
     const btcEl = document.getElementById("bitcoinInfo");
     async function updateBitcoin() {
       try {
@@ -435,7 +412,6 @@
       } catch (e) { btcEl.textContent = "BTC Data Unavailable"; }
     }
     
-    // Times
     const tEls = {
         ca: document.getElementById("timeCalifornia"),
         ny: document.getElementById("timeNewYork"),
@@ -453,7 +429,6 @@
       tEls.dl.textContent = `New Delhi: ${f("Asia/Kolkata")}`;
     }
 
-    // Quotes
     const qEl = document.getElementById("quotesBox");
     const quotes = [
       "He who has a why to live can bear almost any how.",
@@ -473,7 +448,6 @@
       setTimeout(cycleQuotes, 10000);
     }
 
-    // Init
     window.onload = () => {
       updateTimes(); setInterval(updateTimes, 1000);
       cycleQuotes();
