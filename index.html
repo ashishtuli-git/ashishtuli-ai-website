@@ -125,7 +125,7 @@
   <script>
     /**
      * ==========================================================
-     * 3D NEURAL NETWORK V6: ANTI-COLLAPSE PHYSICS
+     * 3D NEURAL NETWORK V7: PERPETUAL MOTION
      * ==========================================================
      */
     const canvas = document.getElementById('neuralCanvas');
@@ -170,7 +170,6 @@
     // --- 3D UTILS ---
     function initNodes() {
       nodes = [];
-      // Use a volume spread
       const maxDim = Math.max(width, height);
       
       for(let i=0; i<nodeCount; i++) {
@@ -211,8 +210,7 @@
       
       const projectedNodes = [];
       const boxLimit = Math.max(width, height) * 0.6; 
-      const repulsionDist = 60; // Distance to push neighbors away
-
+      
       // 1. PHYSICS UPDATE
       nodes.forEach((n, index) => {
         n.prevConnections = n.connections;
@@ -220,28 +218,29 @@
         if (n.shimmer > 0.01) n.shimmer *= 0.9; else n.shimmer = 0;
 
         if (!n.isStopped) {
-            // A. REPULSION (Prevents collapse)
-            // Simplified: Push away if too close to center, or simple brownian jitter
-            // We use a "Soft Boundary" logic instead of center gravity
-            
-            // B. CONTAINMENT (Fishbowl)
-            // Instead of pulling to 0,0,0, we only push back if outside the box
-            if (n.x > boxLimit) n.vx -= 0.05;
-            else if (n.x < -boxLimit) n.vx += 0.05;
-            
-            if (n.y > boxLimit) n.vy -= 0.05;
-            else if (n.y < -boxLimit) n.vy += 0.05;
+            // FIX: Thermal Energy (Constant subtle randomness)
+            // This prevents them from ever settling into a static state
+            n.vx += (Math.random() - 0.5) * 0.08;
+            n.vy += (Math.random() - 0.5) * 0.08;
+            n.vz += (Math.random() - 0.5) * 0.08;
 
-            if (n.z > boxLimit) n.vz -= 0.05;
-            else if (n.z < -boxLimit) n.vz += 0.05;
+            // Fishbowl Containment
+            if (n.x > boxLimit) n.vx -= 0.08;
+            else if (n.x < -boxLimit) n.vx += 0.08;
+            
+            if (n.y > boxLimit) n.vy -= 0.08;
+            else if (n.y < -boxLimit) n.vy += 0.08;
+
+            if (n.z > boxLimit) n.vz -= 0.08;
+            else if (n.z < -boxLimit) n.vz += 0.08;
 
             // Apply velocity
             n.x += n.vx;
             n.y += n.vy;
             n.z += n.vz;
 
-            // Drag/Friction (keep speeds sane)
-            n.vx *= 0.99; n.vy *= 0.99; n.vz *= 0.99;
+            // Light Friction
+            n.vx *= 0.98; n.vy *= 0.98; n.vz *= 0.98;
         }
 
         // Handle Logic
@@ -262,8 +261,7 @@
         projectedNodes.push({ id: index, x: x2d, y: y2d, z: p.z, scale: scale, obj: n });
       });
 
-      // 2. REPULSION (N^2 Check for overlaps)
-      // This prevents the "Big White Node" singularity
+      // 2. REPULSION (Anti-Collapse)
       for(let i=0; i<nodes.length; i++) {
           if(nodes[i].isStopped) continue;
           for(let j=i+1; j<nodes.length; j++) {
@@ -272,11 +270,10 @@
               let dy = nodes[i].y - nodes[j].y;
               let dz = nodes[i].z - nodes[j].z;
               let d2 = dx*dx + dy*dy + dz*dz;
-              // If closer than 80 units
-              if(d2 < 6400) { 
+              if(d2 < 5000) { 
                   let dist = Math.sqrt(d2);
                   if(dist < 1) dist = 1; 
-                  let force = (80 - dist) * 0.001; // Gentle push
+                  let force = (70 - dist) * 0.0015; // Repulsion force
                   let fx = (dx/dist) * force;
                   let fy = (dy/dist) * force;
                   let fz = (dz/dist) * force;
@@ -360,7 +357,6 @@
              n.isStopped = true; n.vx=0; n.vy=0; n.vz=0; n.freezeAt = undefined;
              n.shimmer = 1; 
         }
-        // Check for Reset
         const frozenCount = nodes.filter(x => x.isStopped).length;
         if (cascadeActive && frozenCount > nodes.length * 0.9 && !resetScheduled) {
             resetScheduled = true;
