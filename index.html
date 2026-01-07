@@ -125,7 +125,7 @@
   <script>
     /**
      * ==========================================================
-     * 3D NEURAL NETWORK V7: PERPETUAL MOTION
+     * 3D NEURAL NETWORK V8: HIGH ENERGY FLUID PHYSICS
      * ==========================================================
      */
     const canvas = document.getElementById('neuralCanvas');
@@ -134,6 +134,7 @@
     // 3D Config
     let width, height;
     const fov = 1000; 
+    // Density Balance
     const nodeCount = window.innerWidth < 768 ? 60 : 160; 
     let connectionDist = 200; 
     
@@ -142,6 +143,7 @@
     let mouse = { x: 0, y: 0 };
     let targetRotation = { x: 0, y: 0 }; 
     let currentRotation = { x: 0, y: 0 };
+    let time = 0; // For sine wave flows
     
     // Logic Flags
     let cascadeActive = false;
@@ -177,9 +179,9 @@
           x: (Math.random() - 0.5) * maxDim,
           y: (Math.random() - 0.5) * maxDim,
           z: (Math.random() - 0.5) * maxDim,
-          vx: (Math.random() - 0.5) * 2,
-          vy: (Math.random() - 0.5) * 2,
-          vz: (Math.random() - 0.5) * 2,
+          vx: (Math.random() - 0.5) * 3, // High initial speed
+          vy: (Math.random() - 0.5) * 3,
+          vz: (Math.random() - 0.5) * 3,
           connections: 0,
           prevConnections: 0,
           shimmer: 0,
@@ -201,6 +203,7 @@
     // --- ANIMATION LOOP ---
     function animate() {
       ctx.clearRect(0, 0, width, height);
+      time += 0.01;
       
       targetRotation.y = mouse.x * 0.2; 
       targetRotation.x = -mouse.y * 0.2; 
@@ -209,7 +212,7 @@
       const autoSpin = performance.now() * 0.0001;
       
       const projectedNodes = [];
-      const boxLimit = Math.max(width, height) * 0.6; 
+      const boxLimit = Math.max(width, height) * 0.65; // Slightly larger play area
       
       // 1. PHYSICS UPDATE
       nodes.forEach((n, index) => {
@@ -218,29 +221,33 @@
         if (n.shimmer > 0.01) n.shimmer *= 0.9; else n.shimmer = 0;
 
         if (!n.isStopped) {
-            // FIX: Thermal Energy (Constant subtle randomness)
-            // This prevents them from ever settling into a static state
-            n.vx += (Math.random() - 0.5) * 0.08;
-            n.vy += (Math.random() - 0.5) * 0.08;
-            n.vz += (Math.random() - 0.5) * 0.08;
+            // HIGH ENERGY WANDER: Constant large random pushes
+            n.vx += (Math.random() - 0.5) * 0.15;
+            n.vy += (Math.random() - 0.5) * 0.15;
+            n.vz += (Math.random() - 0.5) * 0.15;
 
-            // Fishbowl Containment
-            if (n.x > boxLimit) n.vx -= 0.08;
-            else if (n.x < -boxLimit) n.vx += 0.08;
+            // GLOBAL CURRENT: Gentle sine wave influence to create flow
+            n.vx += Math.sin(time + n.y * 0.005) * 0.02;
+            n.vy += Math.cos(time + n.x * 0.005) * 0.02;
+
+            // Fishbowl Containment (Soft Bounds)
+            if (n.x > boxLimit) n.vx -= 0.05;
+            else if (n.x < -boxLimit) n.vx += 0.05;
             
-            if (n.y > boxLimit) n.vy -= 0.08;
-            else if (n.y < -boxLimit) n.vy += 0.08;
+            if (n.y > boxLimit) n.vy -= 0.05;
+            else if (n.y < -boxLimit) n.vy += 0.05;
 
-            if (n.z > boxLimit) n.vz -= 0.08;
-            else if (n.z < -boxLimit) n.vz += 0.08;
+            if (n.z > boxLimit) n.vz -= 0.05;
+            else if (n.z < -boxLimit) n.vz += 0.05;
 
             // Apply velocity
             n.x += n.vx;
             n.y += n.vy;
             n.z += n.vz;
 
-            // Light Friction
-            n.vx *= 0.98; n.vy *= 0.98; n.vz *= 0.98;
+            // LOW FRICTION: Preserves momentum
+            // Changed from 0.98 to 0.995 to keep them sliding
+            n.vx *= 0.995; n.vy *= 0.995; n.vz *= 0.995;
         }
 
         // Handle Logic
@@ -262,6 +269,7 @@
       });
 
       // 2. REPULSION (Anti-Collapse)
+      // Slightly stronger repulsion to handle higher speeds
       for(let i=0; i<nodes.length; i++) {
           if(nodes[i].isStopped) continue;
           for(let j=i+1; j<nodes.length; j++) {
@@ -270,10 +278,11 @@
               let dy = nodes[i].y - nodes[j].y;
               let dz = nodes[i].z - nodes[j].z;
               let d2 = dx*dx + dy*dy + dz*dz;
-              if(d2 < 5000) { 
+              // Repel distance ~80
+              if(d2 < 6400) { 
                   let dist = Math.sqrt(d2);
                   if(dist < 1) dist = 1; 
-                  let force = (70 - dist) * 0.0015; // Repulsion force
+                  let force = (80 - dist) * 0.002; // Stronger push
                   let fx = (dx/dist) * force;
                   let fy = (dy/dist) * force;
                   let fz = (dz/dist) * force;
@@ -347,16 +356,20 @@
     
     // --- CASCADE & FREEZE LOGIC ---
     function handleFreezeLogic(n) {
+        // Trigger
         if (!cascadeActive && !resetScheduled && n.connections > 10 && !n.isStopped) {
             cascadeActive = true; n.isStopped = true; n.vx=0; n.vy=0; n.vz=0;
         }
+        // Spread
         if (cascadeActive && !resetScheduled && !n.isStopped) {
             if (Math.random() < 0.03) n.freezeAt = performance.now() + 200;
         }
+        // Execute Freeze
         if (n.freezeAt && performance.now() > n.freezeAt) {
              n.isStopped = true; n.vx=0; n.vy=0; n.vz=0; n.freezeAt = undefined;
              n.shimmer = 1; 
         }
+        // Check for Reset
         const frozenCount = nodes.filter(x => x.isStopped).length;
         if (cascadeActive && frozenCount > nodes.length * 0.9 && !resetScheduled) {
             resetScheduled = true;
@@ -372,9 +385,9 @@
          if (n.isStopped && n.unfreezeAt && performance.now() > n.unfreezeAt) {
              n.isStopped = false; 
              // Explosive Restart
-             n.vx = (Math.random()-0.5) * 5; 
-             n.vy = (Math.random()-0.5) * 5; 
-             n.vz = (Math.random()-0.5) * 5;
+             n.vx = (Math.random()-0.5) * 6; 
+             n.vy = (Math.random()-0.5) * 6; 
+             n.vz = (Math.random()-0.5) * 6;
              n.unfreezeAt = undefined;
              n.shimmer = 1;
          }
