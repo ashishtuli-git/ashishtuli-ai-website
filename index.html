@@ -84,6 +84,15 @@
       z-index: 3; max-width: 350px;
       font-size: 1rem; font-style: italic; color: #eee; text-align: right;
     }
+    /* Style for the author name */
+    .quote-author {
+      display: block;
+      margin-top: 8px;
+      font-size: 0.85em;
+      font-style: normal;
+      color: #aaa;
+      font-weight: 600;
+    }
 
     /* Mobile */
     @media (max-width: 768px) {
@@ -136,7 +145,7 @@
     const fov = 1000; 
     const nodeCount = window.innerWidth < 768 ? 60 : 160; 
     let connectionDist = 200; 
-    const OVERLOAD_THRESHOLD = 9; // Connections required to turn red
+    const OVERLOAD_THRESHOLD = 9; 
     
     // State
     let nodes = [];
@@ -206,7 +215,7 @@
       const projectedNodes = [];
       const boxLimit = Math.max(width, height) * 0.65; 
       
-      // 1. PHYSICS UPDATE (ALWAYS ACTIVE)
+      // 1. PHYSICS UPDATE
       nodes.forEach((n, index) => {
         n.prevConnections = n.connections;
         n.connections = 0; 
@@ -252,7 +261,7 @@
         projectedNodes.push({ id: index, x: x2d, y: y2d, z: p.z, scale: scale, obj: n });
       });
 
-      // 2. REPULSION (Anti-Collapse)
+      // 2. REPULSION
       for(let i=0; i<nodes.length; i++) {
           for(let j=i+1; j<nodes.length; j++) {
               let dx = nodes[i].x - nodes[j].x;
@@ -295,16 +304,14 @@
               let alpha = (p1.scale + p2.scale) * 0.25;
               if(alpha > 0.8) alpha = 0.8;
 
-              // --- COLOR LOGIC: RED IF CONNECTED TO OVERLOAD ---
+              // Overload Logic
               let isHot1 = p1.obj.connections > OVERLOAD_THRESHOLD;
               let isHot2 = p2.obj.connections > OVERLOAD_THRESHOLD;
 
               if (isHot1 || isHot2) {
-                  // Red line for overload
                   ctx.strokeStyle = `rgba(255, 50, 50, ${alpha})`;
                   ctx.lineWidth = 1.5 * p1.scale;
               } else {
-                  // Normal Blue/White line
                   ctx.strokeStyle = `rgba(200, 220, 255, ${alpha})`;
                   ctx.lineWidth = 1.0 * p1.scale;
               }
@@ -322,22 +329,17 @@
          ctx.beginPath();
          ctx.arc(p.x, p.y, baseRadius, 0, Math.PI * 2);
 
-         // --- NODE COLOR LOGIC ---
          if (n.connections > OVERLOAD_THRESHOLD) {
-             // OVERLOAD RED
-             // Use shimmer to make the red pulse brighter
              let r = 255;
              let g = 30 + (n.shimmer * 100);
              let b = 30 + (n.shimmer * 100);
              ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${p.scale})`;
          } else {
-             // NORMAL BLUE/WHITE
              let val = 220 + (n.shimmer * 35); 
              ctx.fillStyle = `rgba(${val}, ${val}, ${val}, ${p.scale})`;
          }
          ctx.fill();
 
-         // Extra Glow Ring for heavy nodes
          if (n.shimmer > 0.1 || n.connections > 5) {
             ctx.beginPath();
             ctx.arc(p.x, p.y, baseRadius * 1.4, 0, Math.PI * 2);
@@ -387,23 +389,52 @@
       tEls.dl.textContent = `New Delhi: ${f("Asia/Kolkata")}`;
     }
 
+    // --- NEW QUOTES LOGIC ---
     const qEl = document.getElementById("quotesBox");
     const quotes = [
-      "He who has a why to live can bear almost any how.",
-      "That which does not kill us makes us stronger.",
-      "In every real man a child is hidden that wants to play.",
-      "There are no facts, only interpretations.",
-      "Become who you are.",
-      "We have art in order not to die of the truth.",
-      "Necessity is not an established fact, but an interpretation."
+      { text: "Imagination is more important than knowledge. For knowledge is limited, whereas imagination embraces the entire world, stimulating progress, giving birth to evolution.", author: "Albert Einstein" },
+      { text: "The important thing is not to stop questioning. Curiosity has its own reason for existence.", author: "Albert Einstein" },
+      { text: "Two things are infinite: the universe and human stupidity; and I'm not sure about the universe.", author: "Albert Einstein" },
+      { text: "Nature shows us only the tail of the lion. But there is no doubt in my mind that the lion belongs with it even if he cannot reveal himself to the eye all at once because of his huge dimension.", author: "Albert Einstein" },
+      { text: "A person who never made a mistake never tried anything new.", author: "Albert Einstein" },
+      
+      { text: "The first principle is that you must not fool yourself—and you are the easiest person to fool.", author: "Richard Feynman" },
+      { text: "I would rather have questions that can't be answered than answers that can't be questioned.", author: "Richard Feynman" },
+      { text: "Nature uses only the longest threads to weave her patterns, so that each small piece of her fabric reveals the organization of the entire tapestry.", author: "Richard Feynman" },
+      { text: "It doesn't matter how beautiful your theory is, it doesn't matter how smart you are. If it doesn't agree with experiment, it's wrong.", author: "Richard Feynman" },
+      { text: "I think I can safely say that nobody understands quantum mechanics.", author: "Richard Feynman" },
+      
+      { text: "If I have seen further, it is by standing on the shoulders of giants.", author: "Isaac Newton" },
+      { text: "I do not know what I may appear to the world, but to myself I seem to have been only like a boy playing on the sea-shore, and diverting myself in now and then finding a smoother pebble or a prettier shell than ordinary, whilst the great ocean of truth lay all undiscovered before me.", author: "Isaac Newton" },
+      { text: "To every action there is always opposed an equal reaction.", author: "Isaac Newton" },
+      { text: "Truth is ever to be found in simplicity, and not in the multiplicity and confusion of things.", author: "Isaac Newton" },
+      
+      { text: "Somewhere, something incredible is waiting to be known.", author: "Carl Sagan" },
+      { text: "We are made of starstuff. We are a way for the cosmos to know itself.", author: "Carl Sagan" },
+      { text: "Extraordinary claims require extraordinary evidence.", author: "Carl Sagan" },
+      { text: "Science is a way of thinking much more than it is a body of knowledge.", author: "Carl Sagan" },
+      
+      { text: "Nothing in life is to be feared, it is only to be understood. Now is the time to understand more, so that we may fear less.", author: "Marie Curie" },
+      { text: "Be less curious about people and more curious about ideas.", author: "Marie Curie" },
+      
+      { text: "Intelligence is the ability to adapt to change.", author: "Stephen Hawking" },
+      { text: "Look up at the stars and not down at your feet. Try to make sense of what you see, and wonder about what makes the universe exist. Be curious.", author: "Stephen Hawking" },
+      { text: "The greatest enemy of knowledge is not ignorance, it is the illusion of knowledge.", author: "Stephen Hawking" },
+      
+      { text: "Prediction is very difficult, especially if it's about the future.", author: "Niels Bohr" },
+      { text: "It is not the strongest of the species that survives, nor the most intelligent that survives. It is the one that is most adaptable to change.", author: "Charles Darwin" },
+      { text: "If you want to find the secrets of the universe, think in terms of energy, frequency and vibration.", author: "Nikola Tesla" },
+      { text: "Measure what is measurable, and make measurable what is not so.", author: "Galileo Galilei" }
     ];
+
     function cycleQuotes() {
       qEl.style.opacity = 0;
       setTimeout(() => {
-          qEl.textContent = quotes[Math.floor(Math.random() * quotes.length)];
+          const r = quotes[Math.floor(Math.random() * quotes.length)];
+          qEl.innerHTML = `"${r.text}" <span class="quote-author">— ${r.author}</span>`;
           qEl.style.opacity = 1;
-      }, 300);
-      setTimeout(cycleQuotes, 10000);
+      }, 500);
+      setTimeout(cycleQuotes, 12000);
     }
 
     window.onload = () => {
